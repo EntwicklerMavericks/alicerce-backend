@@ -38,7 +38,6 @@ export declare class WorkspacesService {
             bandeira: import("@prisma/client").$Enums.BandeiraCartao;
             ultimosDigitos: string | null;
             limiteTotal: import("@prisma/client/runtime/library").Decimal;
-            limiteDisponivel: import("@prisma/client/runtime/library").Decimal;
             diaFechamento: number;
             diaVencimento: number;
         }[];

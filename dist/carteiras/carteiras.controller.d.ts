@@ -110,6 +110,8 @@ export declare class CarteirasController {
             criadoPorId: string | null;
             transferenciaId: string | null;
             referenciaId: string | null;
+            referenciaTipo: import("@prisma/client").$Enums.ReferenciaTipoMovimentacao;
+            origem: import("@prisma/client").$Enums.OrigemMovimentacao;
         }[];
     }>;
     transferirFundos(workspaceId: string, usuarioId: string, dto: TransferirFundosDto): Promise<{

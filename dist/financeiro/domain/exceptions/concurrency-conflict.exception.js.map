@@ -1,0 +1,1 @@
+{"version":3,"file":"concurrency-conflict.exception.js","sourceRoot":"","sources":["../../../../src/financeiro/domain/exceptions/concurrency-conflict.exception.ts"],"names":[],"mappings":";;;AAAA,2CAAmD;AAEnD,MAAa,4BAA6B,SAAQ,0BAAiB;IACjE,YAAY,OAAO,GAAG,mEAAmE;QACvF,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,IAAI,GAAG,8BAA8B,CAAC;IAC7C,CAAC;CACF;AALD,oEAKC"}
