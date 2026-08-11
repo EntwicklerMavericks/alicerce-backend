@@ -8,10 +8,21 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
-  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:4200';
+  // Enable CORS for Local & Cloudflare Pages/Workers
+  const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      if (!origin || !corsOrigin || corsOrigin === '*' || origin.includes('pages.dev') || origin.includes('workers.dev') || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        const allowed = corsOrigin.split(',').map((o) => o.trim());
+        if (allowed.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      }
+    },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization, X-Workspace-Id',
