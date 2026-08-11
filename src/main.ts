@@ -8,24 +8,34 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for Local & Cloudflare Pages/Workers
-  const corsOrigin = process.env.CORS_ORIGIN;
+  // Enable CORS robusto para Local & Cloudflare Pages/Workers
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || !corsOrigin || corsOrigin === '*' || origin.includes('pages.dev') || origin.includes('workers.dev') || origin.includes('localhost')) {
+      if (
+        !origin ||
+        origin.includes('pages.dev') ||
+        origin.includes('trycloudflare.com') ||
+        origin.includes('workers.dev') ||
+        origin.includes('localhost')
+      ) {
         callback(null, true);
       } else {
-        const allowed = corsOrigin.split(',').map((o) => o.trim());
-        if (allowed.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(null, true);
-        }
+        callback(null, true);
       }
     },
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization, X-Workspace-Id',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Workspace-Id',
+      'x-workspace-id',
+      'Origin',
+      'X-Requested-With',
+      'Access-Control-Allow-Origin',
+    ],
+    optionsSuccessStatus: 204,
   });
 
   // Global API Prefix & Versioning (/v1)
