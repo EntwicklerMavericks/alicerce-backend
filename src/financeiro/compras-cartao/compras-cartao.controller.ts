@@ -5,7 +5,7 @@ import { CriarCompraCartaoDto } from './dto/criar-compra-cartao.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Compras no Cartão de Crédito')
-@Controller('api/v1/financeiro/compras-cartao')
+@Controller('financeiro/compras-cartao')
 @UseGuards(JwtAuthGuard)
 export class ComprasCartaoController {
   constructor(private readonly comprasCartaoService: ComprasCartaoService) {}

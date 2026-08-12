@@ -5,7 +5,7 @@ import { CriarCartaoDto } from './dto/criar-cartao.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Cartões de Crédito')
-@Controller('api/v1/financeiro/cartoes')
+@Controller('financeiro/cartoes')
 @UseGuards(JwtAuthGuard)
 export class CartoesController {
   constructor(private readonly cartoesService: CartoesService) {}

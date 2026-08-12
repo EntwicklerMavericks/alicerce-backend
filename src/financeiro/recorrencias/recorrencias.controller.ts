@@ -7,7 +7,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { YearMonth } from '../domain/value-objects/year-month.vo';
 
 @ApiTags('Recorrências Financeiras (Google Calendar Pattern)')
-@Controller('api/v1/financeiro/recorrencias')
+@Controller('financeiro/recorrencias')
 @UseGuards(JwtAuthGuard)
 export class RecorrenciasController {
   constructor(
