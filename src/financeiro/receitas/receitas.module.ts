@@ -3,9 +3,10 @@ import { ReceitasService } from './receitas.service';
 import { ReceitasController } from './receitas.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LedgerModule } from '../ledger/ledger.module';
+import { CategoriasModule } from '../categorias/categorias.module';
 
 @Module({
-  imports: [PrismaModule, LedgerModule],
+  imports: [PrismaModule, LedgerModule, CategoriasModule],
   controllers: [ReceitasController],
   providers: [ReceitasService],
   exports: [ReceitasService],

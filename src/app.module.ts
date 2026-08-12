@@ -23,7 +23,7 @@ import { ProjetosModule } from './projetos/projetos.module';
 import { PlanningModule } from './financeiro/planning/planning.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AlertasModule } from './alertas/alertas.module';
-import { RelatoriosModule } from './relatorios/relatorios.module';
+import { RelatoriosModule } from './relatorios/relatorios.module';import { CategoriasModule } from './financeiro/categorias/categorias.module';
 
 @Module({
   imports: [
@@ -37,6 +37,7 @@ import { RelatoriosModule } from './relatorios/relatorios.module';
     PessoasModule,
     CarteirasModule,
     LedgerModule,
+    CategoriasModule,
     ReceitasModule,
     DespesasModule,
     ReadModelsModule,

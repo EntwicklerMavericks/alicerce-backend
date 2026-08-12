@@ -7,11 +7,14 @@ import { Money } from '../domain/value-objects/money.vo';
 import { LedgerEntry } from '../ledger/entities/ledger-entry';
 import { StatusLiquidacao, StatusDocumento, TipoMovimentacao, ReferenciaTipoMovimentacao, OrigemMovimentacao, Prisma } from '@prisma/client';
 
+import { CategoriasService } from '../categorias/categorias.service';
+
 @Injectable()
 export class DespesasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ledgerService: LedgerService,
+    private readonly categoriasService: CategoriasService,
   ) {}
 
   async criar(workspaceId: string, usuarioId: string, dto: CriarDespesaDto) {
@@ -21,18 +24,12 @@ export class DespesasService {
       throw new BadRequestException('Uma carteira é obrigatória para liquidar uma despesa.');
     }
 
-    // 1. Validação de Categoria (Workspace ou Sistema)
-    if (dto.categoriaId) {
-      const categoria = await this.prisma.categoria.findFirst({
-        where: {
-          id: dto.categoriaId,
-          OR: [{ workspaceId }, { sistema: true }],
-        },
-      });
-      if (!categoria) {
-        throw new NotFoundException('Categoria não encontrada ou inválida para este workspace.');
-      }
-    }
+    // 1. Validação de Categoria (Centralizada e Unificada via CategoriasService)
+    await this.categoriasService.validarCategoriaParaLancamento(
+      workspaceId,
+      dto.categoriaId,
+      'DESPESA',
+    );
 
     // 2. Validação de Carteira (Se informada)
     if (dto.carteiraId) {
