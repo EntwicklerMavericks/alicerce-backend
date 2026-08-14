@@ -13,4 +13,8 @@ export class CriarAporteMetaDto {
   @IsOptional()
   @IsString()
   descricao?: string;
+
+  @IsOptional()
+  @IsString()
+  observacao?: string;
 }

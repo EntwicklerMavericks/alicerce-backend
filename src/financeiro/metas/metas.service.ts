@@ -177,9 +177,10 @@ export class MetasService {
     );
 
     const dataAporte = dto.data ? new Date(dto.data) : new Date();
+    const descricaoFinal = dto.descricao || dto.observacao;
 
     // Invoca invariante e auto-transição DDD no aggregate
-    aggregate.adicionarAporte('temp-id', Money.deReais(dto.valor), dataAporte, dto.descricao);
+    aggregate.adicionarAporte('temp-id', Money.deReais(dto.valor), dataAporte, descricaoFinal);
 
     return this.prisma.$transaction(async (tx) => {
       const aporte = await tx.aporteMeta.create({
@@ -187,7 +188,7 @@ export class MetasService {
           metaId,
           valor: new Prisma.Decimal(dto.valor),
           data: dataAporte,
-          descricao: dto.descricao,
+          descricao: descricaoFinal,
         },
       });
 
