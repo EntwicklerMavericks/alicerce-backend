@@ -24,6 +24,7 @@ export interface MetaComEsforco {
     noPrazo: boolean;
   };
   ritmo: 'EXCELENTE' | 'NO_RITMO' | 'ATRASADO' | 'CONCLUIDO';
+  aportes?: any[];
   dataCriacao: Date;
   dataAtualizacao: Date;
 }
@@ -158,6 +159,14 @@ export class MetasReadModelService {
         noPrazo: esforco.noPrazo,
       },
       ritmo,
+      aportes: (metaDb.aportes || []).map((a: any) => ({
+        id: a.id,
+        metaId: a.metaId,
+        valor: Number(a.valor),
+        data: a.data,
+        descricao: a.descricao,
+        dataCriacao: a.dataCriacao,
+      })),
       dataCriacao: metaDb.dataCriacao,
       dataAtualizacao: metaDb.dataAtualizacao,
     };
