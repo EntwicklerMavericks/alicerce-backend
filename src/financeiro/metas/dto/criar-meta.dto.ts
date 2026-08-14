@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsPositive, IsOptional, IsDateString, IsInt } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsPositive, IsOptional, IsDateString, IsInt, Min } from 'class-validator';
 
 export class CriarMetaDto {
   @IsNotEmpty()
@@ -13,6 +13,11 @@ export class CriarMetaDto {
   @IsNumber()
   @IsPositive()
   valorAlvo: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  valorInicial?: number;
 
   @IsOptional()
   @IsDateString()

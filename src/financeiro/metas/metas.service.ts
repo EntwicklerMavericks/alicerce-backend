@@ -39,8 +39,9 @@ export class MetasService {
     );
 
     const valorAlvoDecimal = new Prisma.Decimal(domainMeta.valorAlvo.paraReais());
+    const valorInicial = dto.valorInicial ?? 0;
 
-    return this.prisma.meta.create({
+    const meta = await this.prisma.meta.create({
       data: {
         workspaceId,
         nome: domainMeta.nome,
@@ -53,6 +54,20 @@ export class MetasService {
         status: 'ATIVA',
       },
     });
+
+    // Criar aporte inicial automático se valorInicial > 0
+    if (valorInicial > 0) {
+      await this.prisma.aporteMeta.create({
+        data: {
+          metaId: meta.id,
+          valor: new Prisma.Decimal(valorInicial),
+          descricao: 'Aporte inicial',
+          data: new Date(),
+        },
+      });
+    }
+
+    return meta;
   }
 
   async listar(workspaceId: string) {
