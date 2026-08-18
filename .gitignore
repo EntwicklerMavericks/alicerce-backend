@@ -16,6 +16,5 @@ lerna-debug.log*
 Thumbs.db
 
 # dotenv environment variable files
-.env
 .env.production
 .env.staging
