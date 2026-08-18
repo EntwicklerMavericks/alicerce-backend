@@ -15,6 +15,11 @@ export class CriarItemWishlistDto {
   @IsOptional()
   precoAlvo?: number;
 
+  @IsNumber({}, { message: 'O preço estimado deve ser um número.' })
+  @Min(0, { message: 'O preço estimado não pode ser negativo.' })
+  @IsOptional()
+  precoEstimado?: number;
+
   @IsEnum(PrioridadeWishlist, { message: 'Prioridade inválida.' })
   @IsOptional()
   prioridade?: PrioridadeWishlist;
@@ -24,6 +29,22 @@ export class CriarItemWishlistDto {
   @Max(365, { message: 'O tempo de esfriamento máximo é de 365 dias.' })
   @IsOptional()
   diasEsfriamento?: number;
+
+  @IsString()
+  @IsOptional()
+  imagemUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  linkUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  metaId?: string;
+
+  @IsString()
+  @IsOptional()
+  categoriaId?: string;
 
   @IsString()
   @IsOptional()

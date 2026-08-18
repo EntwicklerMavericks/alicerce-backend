@@ -97,6 +97,35 @@ export class ComparadorCotacoesReadModelService {
       }
     }
 
+    // 3. Link direto cadastrado no ItemWishlist
+    if (item.linkUrl && item.linkUrl.trim() !== '') {
+      const urlNormalizada = item.linkUrl.trim();
+      const jaExisteMesmaUrl = ofertas.some(
+        (o) => o.url && o.url.toLowerCase() === urlNormalizada.toLowerCase(),
+      );
+      if (!jaExisteMesmaUrl) {
+        let nomeLoja = 'Oferta Cadastrada';
+        try {
+          const parsed = new URL(
+            urlNormalizada.startsWith('http')
+              ? urlNormalizada
+              : `https://${urlNormalizada}`,
+          );
+          const hostname = parsed.hostname.replace(/^www\./, '');
+          nomeLoja = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+        } catch (_) {}
+
+        ofertas.push({
+          id: `link-direct-${item.id}`,
+          nomeLoja,
+          preco: item.precoAlvo !== null ? Number(item.precoAlvo) : 0,
+          url: urlNormalizada,
+          tipo: 'COTACAO_AVULSA',
+          observacoes: 'Link direto do item da wishlist',
+        });
+      }
+    }
+
     // Ordena as ofertas por menor preço
     ofertas.sort((a, b) => a.preco - b.preco);
 

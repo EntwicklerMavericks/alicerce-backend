@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -113,9 +114,19 @@ export class WishlistController {
     return this.wishlistService.planejar(workspaceId, id);
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: 'Atualizar informações de um item da wishlist (PUT)' })
+  async atualizarPut(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: AtualizarItemWishlistDto,
+  ) {
+    return this.wishlistService.atualizar(workspaceId, id, dto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: 'Atualizar informações de um item da wishlist' })
-  async atualizar(
+  @ApiOperation({ summary: 'Atualizar informações de um item da wishlist (PATCH)' })
+  async atualizarPatch(
     @CurrentWorkspace() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: AtualizarItemWishlistDto,

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { WishlistService } from './wishlist.service';
+import { CotacoesService } from '../cotacoes/cotacoes.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConcurrencyConflictException } from '../domain/exceptions/concurrency-conflict.exception';
 import { DomainException } from '../domain/exceptions/domain.exception';
@@ -74,12 +75,20 @@ describe('WishlistService', () => {
       $transaction: jest.fn((callback) => callback(mockPrisma)),
     };
 
+    const mockCotacoesService = {
+      buscarEGravarCotacoesSobDemanda: jest.fn().mockResolvedValue({}),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WishlistService,
         {
           provide: PrismaService,
           useValue: mockPrisma,
+        },
+        {
+          provide: CotacoesService,
+          useValue: mockCotacoesService,
         },
       ],
     }).compile();

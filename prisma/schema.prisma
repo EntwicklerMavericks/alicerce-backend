@@ -848,7 +848,7 @@ model Produto {
 model ImagemProduto {
   id          String   @id @default(uuid())
   produtoId   String   @map("produto_id")
-  url         String
+  url         String   @db.Text
   ordem       Int      @default(0)
   principal   Boolean  @default(false)
   ativo       Boolean  @default(true)
@@ -864,7 +864,7 @@ model LinkProduto {
   id               String    @id @default(uuid())
   produtoId        String    @map("produto_id")
   lojaId           String    @map("loja_id")
-  url              String
+  url              String    @db.Text
   preco            Decimal   @db.Decimal(10, 2)
   versao           Int       @default(0)
   ativo            Boolean   @default(true)
@@ -898,6 +898,8 @@ model ItemWishlist {
   produtoId             String?            @map("produto_id")
   nome                  String
   descricao             String?
+  linkUrl               String?            @map("link_url") @db.Text
+  imagemUrl             String?            @map("imagem_url") @db.Text
   precoAlvo             Decimal?           @map("preco_alvo") @db.Decimal(10, 2)
   valorCompra           Decimal?           @map("valor_compra") @db.Decimal(10, 2)
   valorEconomizado      Decimal?           @map("valor_economizado") @db.Decimal(10, 2)
@@ -930,8 +932,8 @@ model CotacaoAvulsa {
   itemWishlistId String   @map("item_wishlist_id")
   nomeLoja       String   @map("nome_loja")
   preco          Decimal  @db.Decimal(10, 2)
-  url            String?
-  observacoes    String?
+  url            String?  @db.Text
+  observacoes    String?  @db.Text
   versao         Int      @default(0)
   ativo          Boolean  @default(true)
   dataCriacao    DateTime @default(now()) @map("data_criacao")
@@ -949,8 +951,8 @@ model Cotacao {
   itemWishlistId String   @map("item_wishlist_id")
   lojaId         String?  @map("loja_id")
   preco          Decimal  @db.Decimal(10, 2)
-  url            String?
-  observacoes    String?
+  url            String?  @db.Text
+  observacoes    String?  @db.Text
   dataCotacao    DateTime @default(now()) @map("data_cotacao")
 
   itemWishlist ItemWishlist @relation(fields: [itemWishlistId], references: [id], onDelete: Cascade)

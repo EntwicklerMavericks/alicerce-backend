@@ -7,6 +7,8 @@ export interface CriarItemWishlistParams {
   workspaceId: string;
   nome: string;
   descricao?: string | null;
+  linkUrl?: string | null;
+  imagemUrl?: string | null;
   precoAlvo?: number | null;
   prioridade?: PrioridadeWishlist;
   diasEsfriamento?: number;
@@ -19,6 +21,8 @@ export interface ReconstituirItemWishlistParams {
   workspaceId: string;
   nome: string;
   descricao?: string | null;
+  linkUrl?: string | null;
+  imagemUrl?: string | null;
   precoAlvo?: number | null;
   valorCompra?: number | null;
   valorEconomizado?: number | null;
@@ -52,6 +56,8 @@ export interface DesistirParams {
 export class ItemWishlistAggregate {
   private _nome: string;
   private _descricao: string | null;
+  private _linkUrl: string | null;
+  private _imagemUrl: string | null;
   private _precoAlvo: number | null;
   private _valorCompra: number | null;
   private _valorEconomizado: number | null;
@@ -74,6 +80,8 @@ export class ItemWishlistAggregate {
     readonly workspaceId: string,
     nome: string,
     descricao: string | null,
+    linkUrl: string | null,
+    imagemUrl: string | null,
     precoAlvo: number | null,
     valorCompra: number | null,
     valorEconomizado: number | null,
@@ -103,6 +111,8 @@ export class ItemWishlistAggregate {
 
     this._nome = nome;
     this._descricao = descricao ?? null;
+    this._linkUrl = linkUrl ?? null;
+    this._imagemUrl = imagemUrl ?? null;
     this._precoAlvo = precoAlvo !== undefined && precoAlvo !== null ? Number(precoAlvo) : null;
     this._valorCompra = valorCompra !== undefined && valorCompra !== null ? Number(valorCompra) : null;
     this._valorEconomizado = valorEconomizado !== undefined && valorEconomizado !== null ? Number(valorEconomizado) : null;
@@ -135,6 +145,8 @@ export class ItemWishlistAggregate {
       params.workspaceId,
       params.nome,
       params.descricao ?? null,
+      params.linkUrl ?? null,
+      params.imagemUrl ?? null,
       params.precoAlvo ?? null,
       null,
       null,
@@ -161,6 +173,8 @@ export class ItemWishlistAggregate {
       params.workspaceId,
       params.nome,
       params.descricao ?? null,
+      params.linkUrl ?? null,
+      params.imagemUrl ?? null,
       params.precoAlvo ?? null,
       params.valorCompra ?? null,
       params.valorEconomizado ?? null,
@@ -187,6 +201,14 @@ export class ItemWishlistAggregate {
 
   get descricao(): string | null {
     return this._descricao;
+  }
+
+  get linkUrl(): string | null {
+    return this._linkUrl;
+  }
+
+  get imagemUrl(): string | null {
+    return this._imagemUrl;
   }
 
   get precoAlvo(): number | null {
@@ -349,6 +371,8 @@ export class ItemWishlistAggregate {
   atualizarDados(params: {
     nome?: string;
     descricao?: string | null;
+    linkUrl?: string | null;
+    imagemUrl?: string | null;
     precoAlvo?: number | null;
     prioridade?: PrioridadeWishlist;
   }): void {
@@ -362,6 +386,12 @@ export class ItemWishlistAggregate {
     }
     if (params.descricao !== undefined) {
       this._descricao = params.descricao;
+    }
+    if (params.linkUrl !== undefined) {
+      this._linkUrl = params.linkUrl;
+    }
+    if (params.imagemUrl !== undefined) {
+      this._imagemUrl = params.imagemUrl;
     }
     if (params.precoAlvo !== undefined) {
       this._precoAlvo = params.precoAlvo !== null ? Number(params.precoAlvo) : null;

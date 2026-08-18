@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { StatusWishlist, PrioridadeWishlist } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CotacoesService } from '../cotacoes/cotacoes.service';
 import { ItemWishlistAggregate } from './domain/entities/item-wishlist.aggregate';
 import { ConcurrencyConflictException } from '../domain/exceptions/concurrency-conflict.exception';
 import { DomainException } from '../domain/exceptions/domain.exception';
@@ -11,7 +12,10 @@ import { ConcluirCompraWishlistDto } from './dto/concluir-compra-wishlist.dto';
 
 @Injectable()
 export class WishlistService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cotacoesService: CotacoesService,
+  ) {}
 
   async criar(workspaceId: string, dto: CriarItemWishlistDto) {
     if (dto.produtoId) {
@@ -22,7 +26,9 @@ export class WishlistService {
       workspaceId,
       nome: dto.nome,
       descricao: dto.descricao,
-      precoAlvo: dto.precoAlvo,
+      linkUrl: dto.linkUrl,
+      imagemUrl: dto.imagemUrl,
+      precoAlvo: dto.precoAlvo ?? dto.precoEstimado,
       prioridade: dto.prioridade,
       diasEsfriamento: dto.diasEsfriamento,
       produtoId: dto.produtoId,
@@ -35,6 +41,8 @@ export class WishlistService {
         produtoId: aggregate.produtoId,
         nome: aggregate.nome,
         descricao: aggregate.descricao,
+        linkUrl: aggregate.linkUrl,
+        imagemUrl: aggregate.imagemUrl,
         precoAlvo: aggregate.precoAlvo,
         prioridade: aggregate.prioridade,
         diasEsfriamento: aggregate.diasEsfriamento,
@@ -50,6 +58,9 @@ export class WishlistService {
         cotacoes: true,
       },
     });
+
+    // Disparar coleta assíncrona best-effort em background (não-bloqueante)
+    void this.cotacoesService.buscarEGravarCotacoesSobDemanda(workspaceId, aggregate.id).catch(() => {});
 
     return this.formatarItem(item);
   }
@@ -298,7 +309,16 @@ export class WishlistService {
     const dbItem = await this.buscarItemAtivo(workspaceId, id);
     const aggregate = this.mapToAggregate(dbItem);
 
-    aggregate.atualizarDados(dto);
+    const precoAlvoFinal = dto.precoAlvo ?? dto.precoEstimado;
+
+    aggregate.atualizarDados({
+      nome: dto.nome,
+      descricao: dto.descricao,
+      linkUrl: dto.linkUrl,
+      imagemUrl: dto.imagemUrl,
+      precoAlvo: precoAlvoFinal,
+      prioridade: dto.prioridade,
+    });
 
     const updated = await this.prisma.itemWishlist.updateMany({
       where: {
@@ -310,8 +330,12 @@ export class WishlistService {
       data: {
         nome: aggregate.nome,
         descricao: aggregate.descricao,
+        linkUrl: aggregate.linkUrl,
+        imagemUrl: aggregate.imagemUrl,
         precoAlvo: aggregate.precoAlvo,
         prioridade: aggregate.prioridade,
+        ...(dto.diasEsfriamento && { diasEsfriamento: dto.diasEsfriamento }),
+        ...(dto.status && { status: dto.status }),
         versao: { increment: 1 },
       },
     });
@@ -375,6 +399,8 @@ export class WishlistService {
       workspaceId: dbItem.workspaceId,
       nome: dbItem.nome,
       descricao: dbItem.descricao,
+      linkUrl: dbItem.linkUrl ?? null,
+      imagemUrl: dbItem.imagemUrl ?? null,
       precoAlvo: dbItem.precoAlvo ? Number(dbItem.precoAlvo) : null,
       valorCompra: dbItem.valorCompra ? Number(dbItem.valorCompra) : null,
       valorEconomizado: dbItem.valorEconomizado ? Number(dbItem.valorEconomizado) : null,
@@ -442,7 +468,10 @@ export class WishlistService {
       produtoId: item.produtoId,
       nome: item.nome,
       descricao: item.descricao,
+      linkUrl: item.linkUrl || item.produto?.links?.[0]?.url || null,
+      imagemUrl: item.imagemUrl || item.produto?.imagens?.[0]?.url || null,
       precoAlvo: item.precoAlvo !== null && item.precoAlvo !== undefined ? Number(item.precoAlvo) : null,
+      precoEstimado: item.precoAlvo !== null && item.precoAlvo !== undefined ? Number(item.precoAlvo) : 0,
       valorCompra: item.valorCompra !== null && item.valorCompra !== undefined ? Number(item.valorCompra) : null,
       valorEconomizado: item.valorEconomizado !== null && item.valorEconomizado !== undefined ? Number(item.valorEconomizado) : null,
       prioridade: item.prioridade,

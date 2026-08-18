@@ -6,11 +6,14 @@ import { JobMonitoramentoPrecosService } from './domain/services/job-monitoramen
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DomainException } from '../domain/exceptions/domain.exception';
 
+import { CotacaoAggregatorProvider } from './providers/cotacao-aggregator.provider';
+
 describe('CotacoesService', () => {
   let service: CotacoesService;
   let prismaService: any;
   let comparadorReadModelService: any;
   let jobMonitoramentoService: any;
+  let cotacaoAggregator: any;
 
   beforeEach(async () => {
     prismaService = {
@@ -37,6 +40,13 @@ describe('CotacoesService', () => {
       executarMonitoramentoPrecos: jest.fn(),
     };
 
+    cotacaoAggregator = {
+      buscarCotacoesComStatus: jest.fn().mockResolvedValue({
+        ofertas: [],
+        statusColeta: 'CONCLUIDA',
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CotacoesService,
@@ -48,6 +58,10 @@ describe('CotacoesService', () => {
         {
           provide: JobMonitoramentoPrecosService,
           useValue: jobMonitoramentoService,
+        },
+        {
+          provide: CotacaoAggregatorProvider,
+          useValue: cotacaoAggregator,
         },
       ],
     }).compile();

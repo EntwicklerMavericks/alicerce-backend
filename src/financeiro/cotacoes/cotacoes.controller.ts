@@ -48,6 +48,21 @@ export class CotacoesController {
     );
   }
 
+  @Post('item/:itemWishlistId/buscar-automatico')
+  @ApiOperation({
+    summary: 'Executar busca sob demanda de cotações de mercado (Mercado Livre + Scraper Web) com SSRF Guard',
+  })
+  @ApiResponse({ status: 200, description: 'Busca de cotações concluída' })
+  async buscarCotacoesSobDemanda(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('itemWishlistId') itemWishlistId: string,
+  ) {
+    return await this.cotacoesService.buscarEGravarCotacoesSobDemanda(
+      workspaceId,
+      itemWishlistId,
+    );
+  }
+
   @Delete('avulsa/:id')
   @ApiOperation({ summary: 'Remover (soft delete) uma cotação avulsa' })
   @ApiResponse({ status: 200, description: 'Cotação avulsa desativada com sucesso' })

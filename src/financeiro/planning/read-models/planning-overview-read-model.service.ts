@@ -31,11 +31,15 @@ export interface MetaDestaque {
   descricao?: string | null;
   valorAlvo: number;
   valorAcumulado: number;
+  valorAtual?: number;
   distancia: number;
   progressoPercentual: number;
+  percentualConcluido?: number;
   status: string;
   prioridade: number;
   prazo?: Date | null;
+  diasRestantes?: number;
+  ritmoMensalEstimado?: number;
   icone?: string | null;
   cor?: string | null;
   dataCriacao: Date;
@@ -401,17 +405,33 @@ export class PlanningOverviewReadModelService {
         valorAlvo > 0 ? (valorAcumulado / valorAlvo) * 100 : 0;
       const progressoPercentual = Math.min(100, arredondar(progressoRaw));
 
+      let diasRestantes = 0;
+      if (meta.prazo) {
+        const diffMs = new Date(meta.prazo).getTime() - new Date().getTime();
+        diasRestantes = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      }
+
+      let ritmoMensalEstimado = 0;
+      if (valorAlvo > valorAcumulado && diasRestantes > 0) {
+        const mesesRestantes = Math.max(1, Math.ceil(diasRestantes / 30));
+        ritmoMensalEstimado = arredondar((valorAlvo - valorAcumulado) / mesesRestantes);
+      }
+
       return {
         id: meta.id,
         nome: meta.nome,
         descricao: meta.descricao,
         valorAlvo,
         valorAcumulado,
+        valorAtual: valorAcumulado,
         distancia,
         progressoPercentual,
+        percentualConcluido: progressoPercentual,
         status: meta.status,
         prioridade: meta.prioridade,
         prazo: meta.prazo,
+        diasRestantes,
+        ritmoMensalEstimado,
         icone: meta.icone,
         cor: meta.cor,
         dataCriacao: meta.dataCriacao,

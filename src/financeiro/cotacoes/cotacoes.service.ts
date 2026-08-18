@@ -9,6 +9,7 @@ import { RegistrarCotacaoAvulsaDto } from './dto/registrar-cotacao-avulsa.dto';
 import { AtualizarPrecoLinkDto } from './dto/atualizar-preco-link.dto';
 import { ComparadorCotacoesReadModelService } from './read-models/comparador-cotacoes-read-model.service';
 import { JobMonitoramentoPrecosService } from './domain/services/job-monitoramento-precos.service';
+import { CotacaoAggregatorProvider } from './providers/cotacao-aggregator.provider';
 
 @Injectable()
 export class CotacoesService {
@@ -16,6 +17,7 @@ export class CotacoesService {
     private readonly prisma: PrismaService,
     private readonly comparadorCotacoesReadModelService: ComparadorCotacoesReadModelService,
     private readonly jobMonitoramentoPrecosService: JobMonitoramentoPrecosService,
+    private readonly cotacaoAggregatorProvider: CotacaoAggregatorProvider,
   ) {}
 
   async registrarCotacaoAvulsa(
@@ -73,6 +75,73 @@ export class CotacoesService {
         dataAtualizacao: aggregate.dataAtualizacao,
       },
     });
+  }
+
+  async buscarEGravarCotacoesSobDemanda(workspaceId: string, itemWishlistId: string) {
+    const item = await this.prisma.itemWishlist.findFirst({
+      where: { id: itemWishlistId, workspaceId, ativo: true },
+    });
+
+    if (!item) {
+      throw new NotFoundException('Item da wishlist não encontrado para este workspace.');
+    }
+
+    const resultado = await this.cotacaoAggregatorProvider.buscarCotacoesComStatus({
+      termo: item.nome,
+      url: item.linkUrl ?? undefined,
+      itemWishlistId: item.id,
+    });
+
+    // Deduplicação idempotente por chave (workspaceId + itemWishlistId + nomeLoja + url + preco)
+    for (const oferta of resultado.ofertas) {
+      const nomeLoja = oferta.vendedor || (oferta.fonte === 'MERCADO_LIVRE' ? 'Mercado Livre' : 'Loja Web');
+
+      const jaExiste = await this.prisma.cotacaoAvulsa.findFirst({
+        where: {
+          workspaceId,
+          itemWishlistId: item.id,
+          nomeLoja,
+          preco: oferta.preco,
+          url: oferta.url,
+          ativo: true,
+        },
+      });
+
+      if (!jaExiste) {
+        const aggregate = CotacaoAvulsaAggregate.criar({
+          workspaceId,
+          itemWishlistId: item.id,
+          nomeLoja,
+          preco: oferta.preco.toNumber(),
+          url: oferta.url,
+          observacoes: `Encontrado via ${oferta.fonte} (${oferta.titulo})`,
+        });
+
+        await this.prisma.cotacaoAvulsa.create({
+          data: {
+            id: aggregate.id,
+            workspaceId: aggregate.workspaceId,
+            itemWishlistId: aggregate.itemWishlistId,
+            nomeLoja: aggregate.nomeLoja,
+            preco: aggregate.preco,
+            url: aggregate.url,
+            observacoes: aggregate.observacoes,
+            versao: aggregate.versao,
+            ativo: aggregate.ativo,
+            dataCriacao: aggregate.dataCriacao,
+            dataAtualizacao: aggregate.dataAtualizacao,
+          },
+        });
+      }
+    }
+
+    const comparativo = await this.obterComparadorItem(workspaceId, itemWishlistId);
+
+    return {
+      ...comparativo,
+      statusColeta: resultado.statusColeta,
+      errosColeta: resultado.erros || [],
+    };
   }
 
   async removerCotacaoAvulsa(workspaceId: string, id: string) {
