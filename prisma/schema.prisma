@@ -966,7 +966,10 @@ model Projeto {
   workspaceId        String        @map("workspace_id")
   nome               String
   descricao          String?
+  icone              String?
+  cor                String?
   orcamentoEstimado  Decimal?      @map("orcamento_estimado") @db.Decimal(12, 2)
+  prazoEstimado      String?       @map("prazo_estimado")
   status             StatusProjeto @default(PLANEJAMENTO)
   prioridade         Int           @default(1)
   dataInicioPrevista DateTime?     @map("data_inicio_prevista")

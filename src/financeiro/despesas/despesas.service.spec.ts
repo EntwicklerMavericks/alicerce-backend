@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DespesasService } from './despesas.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
+import { CategoriasService } from '../categorias/categorias.service';
 import { StatusLiquidacao, StatusDocumento } from '@prisma/client';
 
 describe('DespesasService', () => {
@@ -43,6 +44,7 @@ describe('DespesasService', () => {
         DespesasService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: LedgerService, useValue: ledgerServiceMock },
+        { provide: CategoriasService, useValue: { validarCategoriaDoWorkspace: jest.fn() } },
       ],
     }).compile();
 

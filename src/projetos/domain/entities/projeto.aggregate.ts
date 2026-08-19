@@ -7,6 +7,9 @@ export interface CriarProjetoParams {
   workspaceId: string;
   nome: string;
   descricao?: string | null;
+  icone?: string | null;
+  cor?: string | null;
+  prazoEstimado?: string | null;
   orcamentoEstimado?: number | null;
   prioridade?: number;
   dataInicioPrevista?: Date | null;
@@ -18,6 +21,9 @@ export interface ReconstituirProjetoParams {
   workspaceId: string;
   nome: string;
   descricao?: string | null;
+  icone?: string | null;
+  cor?: string | null;
+  prazoEstimado?: string | null;
   orcamentoEstimado?: number | null;
   status: StatusProjeto;
   prioridade: number;
@@ -34,6 +40,9 @@ export interface ReconstituirProjetoParams {
 export class ProjetoAggregate {
   private _nome: string;
   private _descricao: string | null;
+  private _icone: string | null;
+  private _cor: string | null;
+  private _prazoEstimado: string | null;
   private _orcamentoEstimado: number | null;
   private _status: StatusProjeto;
   private _prioridade: number;
@@ -51,6 +60,9 @@ export class ProjetoAggregate {
     readonly workspaceId: string,
     nome: string,
     descricao: string | null,
+    icone: string | null,
+    cor: string | null,
+    prazoEstimado: string | null,
     orcamentoEstimado: number | null,
     status: StatusProjeto,
     prioridade: number,
@@ -75,6 +87,9 @@ export class ProjetoAggregate {
 
     this._nome = nome;
     this._descricao = descricao ?? null;
+    this._icone = icone ?? null;
+    this._cor = cor ?? null;
+    this._prazoEstimado = prazoEstimado ?? null;
     this._orcamentoEstimado =
       orcamentoEstimado !== undefined && orcamentoEstimado !== null
         ? Number(orcamentoEstimado)
@@ -120,6 +135,9 @@ export class ProjetoAggregate {
       params.workspaceId,
       params.nome,
       params.descricao ?? null,
+      params.icone ?? null,
+      params.cor ?? null,
+      params.prazoEstimado ?? null,
       params.orcamentoEstimado ?? null,
       'PLANEJAMENTO',
       params.prioridade ?? 1,
@@ -140,6 +158,9 @@ export class ProjetoAggregate {
       params.workspaceId,
       params.nome,
       params.descricao ?? null,
+      params.icone ?? null,
+      params.cor ?? null,
+      params.prazoEstimado ?? null,
       params.orcamentoEstimado ?? null,
       params.status,
       params.prioridade,
@@ -160,6 +181,18 @@ export class ProjetoAggregate {
 
   get descricao(): string | null {
     return this._descricao;
+  }
+
+  get icone(): string | null {
+    return this._icone;
+  }
+
+  get cor(): string | null {
+    return this._cor;
+  }
+
+  get prazoEstimado(): string | null {
+    return this._prazoEstimado;
   }
 
   get orcamentoEstimado(): number | null {
@@ -277,6 +310,9 @@ export class ProjetoAggregate {
   atualizarDados(params: {
     nome?: string;
     descricao?: string | null;
+    icone?: string | null;
+    cor?: string | null;
+    prazoEstimado?: string | null;
     orcamentoEstimado?: number | null;
     prioridade?: number;
     dataInicioPrevista?: Date | null;
@@ -302,6 +338,15 @@ export class ProjetoAggregate {
     }
     if (params.descricao !== undefined) {
       this._descricao = params.descricao;
+    }
+    if (params.icone !== undefined) {
+      this._icone = params.icone;
+    }
+    if (params.cor !== undefined) {
+      this._cor = params.cor;
+    }
+    if (params.prazoEstimado !== undefined) {
+      this._prazoEstimado = params.prazoEstimado;
     }
     if (params.orcamentoEstimado !== undefined) {
       this._orcamentoEstimado =

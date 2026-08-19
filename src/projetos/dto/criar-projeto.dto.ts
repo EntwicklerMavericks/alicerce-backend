@@ -20,6 +20,21 @@ export class CriarProjetoDto {
   @IsString()
   descricao?: string;
 
+  @ApiPropertyOptional({ description: 'Ícone representativo (Material Symbol)' })
+  @IsOptional()
+  @IsString()
+  icone?: string;
+
+  @ApiPropertyOptional({ description: 'Cor hex de destaque' })
+  @IsOptional()
+  @IsString()
+  cor?: string;
+
+  @ApiPropertyOptional({ description: 'Prazo estimado de conclusão' })
+  @IsOptional()
+  @IsString()
+  prazoEstimado?: string;
+
   @ApiPropertyOptional({ description: 'Orçamento estimado manual definido pelo usuário' })
   @IsOptional()
   @IsNumber({}, { message: 'O orçamento estimado deve ser um número.' })

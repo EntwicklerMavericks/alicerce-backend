@@ -6,6 +6,9 @@ export interface ProjetoConsolidadoResult {
   workspaceId: string;
   nome: string;
   descricao: string | null;
+  icone: string | null;
+  cor: string | null;
+  prazoEstimado: string | null;
   status: string;
   prioridade: number;
   dataInicioPrevista: Date | null;
@@ -238,6 +241,9 @@ export class ProjetosReadModelService {
       workspaceId: projeto.workspaceId,
       nome: projeto.nome,
       descricao: projeto.descricao,
+      icone: projeto.icone || 'rocket_launch',
+      cor: projeto.cor || '#C9A74E',
+      prazoEstimado: projeto.prazoEstimado || null,
       status: projeto.status,
       prioridade: projeto.prioridade,
       dataInicioPrevista: projeto.dataInicioPrevista,
