@@ -478,6 +478,8 @@ export class WishlistService {
       diasEsfriamento: item.diasEsfriamento,
       inicioEsfriamento: item.inicioEsfriamento,
       fimEsfriamento: item.fimEsfriamento,
+      dataInicioEsfriamento: item.inicioEsfriamento,
+      dataFimEsfriamento: item.fimEsfriamento,
       status: item.status,
       quebrouEsfriamento: item.quebrouEsfriamento,
       dataQuebraEsfriamento: item.dataQuebraEsfriamento,
