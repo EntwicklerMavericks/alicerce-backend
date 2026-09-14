@@ -90,9 +90,11 @@ describe('DashboardReadModelService', () => {
             dataVencimento: new Date('2026-07-20'),
           },
         ]),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { valor: 0 } }),
       },
       receita: {
         findMany: jest.fn().mockResolvedValue([]),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { valor: 0 } }),
       },
     };
 
@@ -133,6 +135,8 @@ describe('DashboardReadModelService', () => {
     expect(prismaMock.faturaCartao.findMany).toHaveBeenCalledTimes(1);
     expect(prismaMock.despesa.findMany).toHaveBeenCalledTimes(1);
     expect(prismaMock.receita.findMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.despesa.aggregate).toHaveBeenCalled();
+    expect(prismaMock.receita.aggregate).toHaveBeenCalled();
     expect(result).toBeDefined();
   });
 

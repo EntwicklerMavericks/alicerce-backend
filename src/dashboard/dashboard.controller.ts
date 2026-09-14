@@ -14,10 +14,26 @@ export class DashboardController {
   async obterDashboard(
     @CurrentWorkspace() workspaceId: string,
     @Query('referenceDate') referenceDateStr?: string,
+    @Query('competencia') competenciaStr?: string,
   ) {
-    const referenceDate = referenceDateStr
-      ? new Date(referenceDateStr)
-      : new Date();
+    let referenceDate: Date;
+    const dateInput = referenceDateStr || competenciaStr;
+    if (dateInput) {
+      if (/^\d{4}-\d{2}$/.test(dateInput)) {
+        const hoje = new Date();
+        const ano = parseInt(dateInput.slice(0, 4), 10);
+        const mes = parseInt(dateInput.slice(5, 7), 10);
+        if (ano === hoje.getFullYear() && mes === hoje.getMonth() + 1) {
+          referenceDate = hoje;
+        } else {
+          referenceDate = new Date(ano, mes, 0, 23, 59, 59, 999);
+        }
+      } else {
+        referenceDate = new Date(dateInput);
+      }
+    } else {
+      referenceDate = new Date();
+    }
 
     return this.dashboardReadModelService.obterDashboard(
       workspaceId,

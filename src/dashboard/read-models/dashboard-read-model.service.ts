@@ -31,11 +31,15 @@ export interface FaturaAberta {
   cartaoNome: string;
   cartaoCor?: string | null;
   cartaoIcone?: string | null;
+  bandeira?: string;
   mes: number;
   ano: number;
   valorTotal: number;
   dataVencimento: Date;
   status: string;
+  limiteTotal?: number;
+  limiteComprometido?: number;
+  limiteDisponivel?: number;
 }
 
 export interface LancamentoAtrasadoItem {
@@ -50,6 +54,13 @@ export interface LancamentoAtrasadoItem {
 export interface DashboardResult {
   referenceDate: Date;
   saldoGlobal: number;
+  saldoAtual: number;
+  saldoProjetado: number;
+  receitasLiquidadasMes: number;
+  despesasLiquidadasMes: number;
+  receitasPendentes: number;
+  despesasPendentes: number;
+  fluxoDoPeriodo: number;
   faturasAbertas: FaturaAberta[];
   orcamentoMes: OrcamentoAlerta[];
   metasAtivas: MetaDestaque[];
@@ -84,17 +95,92 @@ export class DashboardReadModelService {
       ? new Date(referenceDateInput)
       : new Date();
 
+    const ano = referenceDate.getFullYear();
+    const mes = referenceDate.getMonth();
+    const inicioMes = new Date(ano, mes, 1);
+    const fimMes = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+
     // Execução paralela concorrente sem N+1 (Invariante 2)
-    const [saldoGlobal, planningOverview, faturasAbertas, lancamentosAtrasados] =
-      await Promise.all([
-        this.ledgerService.obterSaldoGlobal(workspaceId, referenceDate),
-        this.planningOverviewReadModelService.obterVisaoUnificada(
+    const [
+      saldoGlobal,
+      planningOverview,
+      faturasAbertas,
+      lancamentosAtrasados,
+      resultReceitasPendentes,
+      resultDespesasPendentes,
+      resultReceitasMes,
+      resultDespesasMes,
+    ] = await Promise.all([
+      this.ledgerService.obterSaldoGlobal(workspaceId, referenceDate),
+      this.planningOverviewReadModelService.obterVisaoUnificada(
+        workspaceId,
+        referenceDate,
+      ),
+      this.buscarFaturasAbertas(workspaceId, referenceDate),
+      this.buscarLancamentosAtrasados(workspaceId, referenceDate),
+      this.prisma.receita.aggregate({
+        where: {
           workspaceId,
-          referenceDate,
-        ),
-        this.buscarFaturasAbertas(workspaceId, referenceDate),
-        this.buscarLancamentosAtrasados(workspaceId, referenceDate),
-      ]);
+          statusLiquidacao: 'PENDENTE',
+          statusDocumento: 'ATIVO',
+          data: { lte: fimMes },
+        },
+        _sum: { valor: true },
+      }),
+      this.prisma.despesa.aggregate({
+        where: {
+          workspaceId,
+          statusLiquidacao: 'PENDENTE',
+          statusDocumento: 'ATIVO',
+          dataVencimento: { lte: fimMes },
+        },
+        _sum: { valor: true },
+      }),
+      this.prisma.receita.aggregate({
+        where: {
+          workspaceId,
+          statusLiquidacao: 'LIQUIDADO',
+          statusDocumento: 'ATIVO',
+          OR: [
+            { dataLiquidacao: { gte: inicioMes, lte: fimMes } },
+            { dataLiquidacao: null, data: { gte: inicioMes, lte: fimMes } },
+          ],
+        },
+        _sum: { valor: true },
+      }),
+      this.prisma.despesa.aggregate({
+        where: {
+          workspaceId,
+          statusLiquidacao: 'LIQUIDADO',
+          statusDocumento: 'ATIVO',
+          OR: [
+            { dataLiquidacao: { gte: inicioMes, lte: fimMes } },
+            { dataLiquidacao: null, dataVencimento: { gte: inicioMes, lte: fimMes } },
+          ],
+        },
+        _sum: { valor: true },
+      }),
+    ]);
+
+    const receitasPendentes = this.sanitizarNumero(
+      Number(resultReceitasPendentes?._sum?.valor || 0),
+    );
+    const despesasPendentes = this.sanitizarNumero(
+      Number(resultDespesasPendentes?._sum?.valor || 0),
+    );
+    const receitasLiquidadasMes = this.sanitizarNumero(
+      Number(resultReceitasMes?._sum?.valor || 0),
+    );
+    const despesasLiquidadasMes = this.sanitizarNumero(
+      Number(resultDespesasMes?._sum?.valor || 0),
+    );
+    const saldoAtual = this.sanitizarNumero(saldoGlobal);
+    const saldoProjetado = this.sanitizarNumero(
+      saldoAtual + receitasPendentes - despesasPendentes,
+    );
+    const fluxoDoPeriodo = this.sanitizarNumero(
+      receitasLiquidadasMes - despesasLiquidadasMes,
+    );
 
     // Limite Estrito de 3 Metas Prioritárias (Invariante 5)
     const metasAtivas = (planningOverview.metasDestaque || [])
@@ -112,7 +198,14 @@ export class DashboardReadModelService {
 
     return {
       referenceDate,
-      saldoGlobal: this.sanitizarNumero(saldoGlobal),
+      saldoGlobal: saldoAtual,
+      saldoAtual,
+      saldoProjetado,
+      receitasLiquidadasMes,
+      despesasLiquidadasMes,
+      receitasPendentes,
+      despesasPendentes,
+      fluxoDoPeriodo,
       faturasAbertas,
       orcamentoMes: planningOverview.orcamentosAlerta || [],
       metasAtivas,
@@ -133,7 +226,15 @@ export class DashboardReadModelService {
         status: { in: ['ABERTA', 'FECHADA', 'ATRASADA'] },
       },
       include: {
-        cartao: true,
+        cartao: {
+          include: {
+            faturas: {
+              include: {
+                parcelas: true,
+              },
+            },
+          },
+        },
         parcelas: true,
       },
       orderBy: [{ ano: 'asc' }, { mes: 'asc' }],
@@ -153,17 +254,37 @@ export class DashboardReadModelService {
 
       valorTotal = this.sanitizarNumero(valorTotal);
 
+      // Limites do cartão
+      let limiteComprometido = 0;
+      const cartaoFaturas = (f.cartao as any)?.faturas;
+      if (Array.isArray(cartaoFaturas)) {
+        for (const fat of cartaoFaturas) {
+          for (const parc of fat.parcelas || []) {
+            if (parc.status !== 'CANCELADA' && parc.status !== 'PAGA') {
+              limiteComprometido += Number(parc.valor || 0);
+            }
+          }
+        }
+      }
+
+      const limiteTotal = Number(f.cartao?.limiteTotal || 0);
+      const limiteDisponivel = Math.max(0, limiteTotal - limiteComprometido);
+
       resultado.push({
         id: f.id,
         cartaoId: f.cartaoId,
-        cartaoNome: f.cartao.nome,
-        cartaoCor: f.cartao.cor,
-        cartaoIcone: f.cartao.icone,
+        cartaoNome: f.cartao?.nome || 'Cartão de Crédito',
+        cartaoCor: f.cartao?.cor || null,
+        cartaoIcone: f.cartao?.icone || null,
+        bandeira: f.cartao?.bandeira || 'MASTERCARD',
         mes: f.mes,
         ano: f.ano,
         valorTotal,
         dataVencimento: new Date(f.dataVencimento),
         status: f.status,
+        limiteTotal: this.sanitizarNumero(limiteTotal),
+        limiteComprometido: this.sanitizarNumero(limiteComprometido),
+        limiteDisponivel: this.sanitizarNumero(limiteDisponivel),
       });
     }
 
