@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CartoesService } from './cartoes.service';
 import { CriarCartaoDto } from './dto/criar-cartao.dto';
@@ -32,5 +32,19 @@ export class CartoesController {
   @ApiResponse({ status: 200, description: 'Cartão encontrado' })
   async obterPorId(@Param('id') id: string) {
     return this.cartoesService.obterPorId(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar dados de um cartão de crédito' })
+  async atualizarCartao(@Param('id') id: string, @Body() dto: Partial<CriarCartaoDto>, @Request() req: any) {
+    const workspaceId = req.user?.workspaceId || 'workspace-demo-id';
+    return this.cartoesService.atualizarCartao(id, workspaceId, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Excluir (desativar) um cartão de crédito' })
+  async removerCartao(@Param('id') id: string, @Request() req: any) {
+    const workspaceId = req.user?.workspaceId || 'workspace-demo-id';
+    return this.cartoesService.removerCartao(id, workspaceId);
   }
 }

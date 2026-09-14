@@ -96,4 +96,42 @@ export class CartoesService {
       limiteDisponivel,
     };
   }
+
+  async atualizarCartao(id: string, workspaceId: string, dto: Partial<CriarCartaoDto>) {
+    const cartao = await this.prisma.cartaoCredito.findFirst({
+      where: { id, workspaceId, ativo: true },
+    });
+    if (!cartao) {
+      throw new NotFoundException(`Cartão de crédito ${id} não encontrado.`);
+    }
+
+    const dataToUpdate: Prisma.CartaoCreditoUpdateInput = {};
+    if (dto.nome !== undefined) dataToUpdate.nome = dto.nome;
+    if (dto.bandeira !== undefined) dataToUpdate.bandeira = dto.bandeira as any;
+    if (dto.ultimosDigitos !== undefined) dataToUpdate.ultimosDigitos = dto.ultimosDigitos;
+    if (dto.limiteTotal !== undefined) dataToUpdate.limiteTotal = new Prisma.Decimal(dto.limiteTotal);
+    if (dto.diaFechamento !== undefined) dataToUpdate.diaFechamento = dto.diaFechamento;
+    if (dto.diaVencimento !== undefined) dataToUpdate.diaVencimento = dto.diaVencimento;
+    if (dto.cor !== undefined) dataToUpdate.cor = dto.cor;
+    if (dto.icone !== undefined) dataToUpdate.icone = dto.icone;
+
+    return this.prisma.cartaoCredito.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+  }
+
+  async removerCartao(id: string, workspaceId: string) {
+    const cartao = await this.prisma.cartaoCredito.findFirst({
+      where: { id, workspaceId },
+    });
+    if (!cartao) {
+      throw new NotFoundException(`Cartão de crédito ${id} não encontrado.`);
+    }
+
+    return this.prisma.cartaoCredito.update({
+      where: { id },
+      data: { ativo: false },
+    });
+  }
 }
