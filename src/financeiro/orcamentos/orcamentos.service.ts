@@ -15,7 +15,7 @@ export class OrcamentosService {
   ) {}
 
   async criarOuAtualizar(workspaceId: string, dto: CriarOrcamentoDto) {
-    const valorTeto = dto.teto ?? dto.valorPlanejado;
+    const valorTeto = dto.teto ?? dto.valorPlanejado ?? dto.valorTeto;
     if (!valorTeto || valorTeto <= 0) {
       throw new BadRequestException('O teto do orçamento deve ser maior que zero.');
     }

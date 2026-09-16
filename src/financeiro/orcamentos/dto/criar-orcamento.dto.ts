@@ -26,4 +26,9 @@ export class CriarOrcamentoDto {
   @IsNumber()
   @IsPositive()
   valorPlanejado?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  valorTeto?: number;
 }
