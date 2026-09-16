@@ -18,13 +18,17 @@ export class RelatoriosController {
     @CurrentWorkspace() workspaceId: string,
     @Query('dataInicio') dataInicio?: string,
     @Query('dataFim') dataFim?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fim') fim?: string,
+    @Query('tipoPeriodo') tipoPeriodo?: string,
     @Query('referenceDate') referenceDate?: string,
   ) {
     return this.readModelService.obterRelatorio(
       workspaceId,
-      dataInicio,
-      dataFim,
+      dataInicio || inicio,
+      dataFim || fim,
       referenceDate,
+      tipoPeriodo,
     );
   }
 
@@ -34,13 +38,17 @@ export class RelatoriosController {
     @Res() res: Response,
     @Query('dataInicio') dataInicio?: string,
     @Query('dataFim') dataFim?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fim') fim?: string,
+    @Query('tipoPeriodo') tipoPeriodo?: string,
     @Query('referenceDate') referenceDate?: string,
   ) {
     const dados = await this.readModelService.obterRelatorio(
       workspaceId,
-      dataInicio,
-      dataFim,
+      dataInicio || inicio,
+      dataFim || fim,
       referenceDate,
+      tipoPeriodo,
     );
     const pdfBuffer = await this.exportadorService.gerarPDF(dados);
     res.setHeader('Content-Type', 'application/pdf');
@@ -57,13 +65,17 @@ export class RelatoriosController {
     @Res() res: Response,
     @Query('dataInicio') dataInicio?: string,
     @Query('dataFim') dataFim?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fim') fim?: string,
+    @Query('tipoPeriodo') tipoPeriodo?: string,
     @Query('referenceDate') referenceDate?: string,
   ) {
     const dados = await this.readModelService.obterRelatorio(
       workspaceId,
-      dataInicio,
-      dataFim,
+      dataInicio || inicio,
+      dataFim || fim,
       referenceDate,
+      tipoPeriodo,
     );
     const excelBuffer = await this.exportadorService.gerarExcel(dados);
     res.setHeader(
@@ -83,13 +95,17 @@ export class RelatoriosController {
     @Res() res: Response,
     @Query('dataInicio') dataInicio?: string,
     @Query('dataFim') dataFim?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fim') fim?: string,
+    @Query('tipoPeriodo') tipoPeriodo?: string,
     @Query('referenceDate') referenceDate?: string,
   ) {
     const dados = await this.readModelService.obterRelatorio(
       workspaceId,
-      dataInicio,
-      dataFim,
+      dataInicio || inicio,
+      dataFim || fim,
       referenceDate,
+      tipoPeriodo,
     );
     const csvBuffer = await this.exportadorService.gerarCSV(dados);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

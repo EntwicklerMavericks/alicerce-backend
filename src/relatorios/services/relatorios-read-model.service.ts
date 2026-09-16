@@ -6,6 +6,9 @@ import { ReconciliationException } from '../exceptions/reconciliation.exception'
 export interface PeriodoRelatorio {
   dataInicio: Date;
   dataFim: Date;
+  tipoPeriodo?: string;
+  inicio?: string;
+  fim?: string;
 }
 
 export interface FluxoCaixaRelatorio {
@@ -14,6 +17,12 @@ export interface FluxoCaixaRelatorio {
   saidas: number;
   saldoFinal: number;
   resultadoPeriodo: number;
+  totalReceitas?: number;
+  totalDespesas?: number;
+  saldoLiquido?: number;
+  taxaPoupanca?: number;
+  historicoDiario?: Array<{ data: string; receita: number; despesa: number; saldoAcumulado: number }>;
+  comparativoMesAnterior?: { receitaVariacaoPct: number; despesaVariacaoPct: number; saldoVariacaoPct: number };
 }
 
 export interface CategoriaRelatorio {
@@ -22,23 +31,39 @@ export interface CategoriaRelatorio {
   tipo: string;
   valor: number;
   percentual: number;
+  icone?: string;
+  cor?: string;
+  quantidadeLancamentos?: number;
 }
 
 export interface CartaoRelatorio {
   cartaoId: string;
   nome: string;
+  nomeCartao?: string;
   bandeira: string;
   valorTotal: number;
   qtdTransacoes: number;
+  limiteTotal?: number;
+  limiteUsado?: number;
+  percentualUso?: number;
+  valorFaturaAtual?: number;
+  cor?: string;
 }
 
 export interface MetaProjetoRelatorio {
   id: string;
   tipo: 'META' | 'PROJETO';
   nome: string;
+  titulo?: string;
   progressoPercentual: number;
+  percentualConcluido?: number;
+  percentualProgresso?: number;
   valorAlvoOuEstimado: number;
+  valorAlvo?: number;
+  orcamentoTotal?: number;
   valorAtualOuGasto: number;
+  valorAtual?: number;
+  valorGasto?: number;
   status: string;
 }
 
@@ -48,6 +73,18 @@ export interface RelatoriosResult {
   categorias: CategoriaRelatorio[];
   cartoes: CartaoRelatorio[];
   metasProjetos: MetaProjetoRelatorio[];
+  distribuicaoDespesas?: CategoriaRelatorio[];
+  distribuicaoReceitas?: CategoriaRelatorio[];
+  topDespesas?: Array<{ descricao: string; valor: number; data: string; categoria: string }>;
+  usoPorCartao?: CartaoRelatorio[];
+  metasStatus?: MetaProjetoRelatorio[];
+  projetosStatus?: MetaProjetoRelatorio[];
+  totalAportadoMetas?: number;
+  progressoGeralMetasPct?: number;
+  totalInvestidoProjetos?: number;
+  totalFaturas?: number;
+  totalLimiteComprometido?: number;
+  geradoEm?: string;
 }
 
 @Injectable()
@@ -69,11 +106,13 @@ export class RelatoriosReadModelService {
     dataInicioInput?: Date | string,
     dataFimInput?: Date | string,
     referenceDateInput?: Date | string,
+    tipoPeriodoInput?: string,
   ): Promise<RelatoriosResult> {
     const { dataInicio, dataFim } = this.calcularIntervaloDatas(
       dataInicioInput,
       dataFimInput,
       referenceDateInput,
+      tipoPeriodoInput,
     );
 
     // Agregação Concorrente/Paralela via Promise.all (Invariante)
@@ -84,12 +123,42 @@ export class RelatoriosReadModelService {
       this.calcularMetasEProjetos(workspaceId),
     ]);
 
+    const metasStatus = metasProjetos.filter((mp) => mp.tipo === 'META');
+    const projetosStatus = metasProjetos.filter((mp) => mp.tipo === 'PROJETO');
+
+    const totalAportadoMetas = metasStatus.reduce((acc, m) => acc + (m.valorAtual || 0), 0);
+    const progressoGeralMetasPct = metasStatus.length > 0
+      ? this.sanitizarNumero(metasStatus.reduce((acc, m) => acc + (m.percentualConcluido || 0), 0) / metasStatus.length)
+      : 0;
+    const totalInvestidoProjetos = projetosStatus.reduce((acc, p) => acc + (p.valorGasto || 0), 0);
+
+    const totalFaturas = cartoes.reduce((acc, c) => acc + (c.valorFaturaAtual || 0), 0);
+    const totalLimiteComprometido = cartoes.reduce((acc, c) => acc + (c.limiteUsado || 0), 0);
+
     return {
-      periodo: { dataInicio, dataFim },
+      periodo: {
+        dataInicio,
+        dataFim,
+        tipoPeriodo: tipoPeriodoInput,
+        inicio: dataInicio.toISOString().split('T')[0],
+        fim: dataFim.toISOString().split('T')[0],
+      },
       fluxoCaixa,
       categorias,
       cartoes,
       metasProjetos,
+      distribuicaoDespesas: categorias,
+      distribuicaoReceitas: [],
+      topDespesas: (categorias as any).topDespesas || [],
+      usoPorCartao: cartoes,
+      metasStatus,
+      projetosStatus,
+      totalAportadoMetas,
+      progressoGeralMetasPct,
+      totalInvestidoProjetos,
+      totalFaturas,
+      totalLimiteComprometido,
+      geradoEm: new Date().toISOString(),
     };
   }
 
@@ -100,6 +169,7 @@ export class RelatoriosReadModelService {
     dataInicioInput?: Date | string,
     dataFimInput?: Date | string,
     referenceDateInput?: Date | string,
+    tipoPeriodoInput?: string,
   ): { dataInicio: Date; dataFim: Date } {
     let referenceDate = referenceDateInput
       ? new Date(referenceDateInput)
@@ -115,6 +185,23 @@ export class RelatoriosReadModelService {
     if (dataInicioInput && dataFimInput) {
       dataInicio = new Date(dataInicioInput);
       dataFim = new Date(dataFimInput);
+    } else if (tipoPeriodoInput === 'ULTIMOS_30_DIAS') {
+      dataFim = new Date(referenceDate);
+      dataInicio = new Date(referenceDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (tipoPeriodoInput === 'ULTIMOS_3_MESES') {
+      const ano = referenceDate.getFullYear();
+      const mes = referenceDate.getMonth();
+      dataInicio = new Date(Date.UTC(ano, mes - 2, 1));
+      dataFim = new Date(Date.UTC(ano, mes + 1, 1));
+    } else if (tipoPeriodoInput === 'ULTIMOS_6_MESES') {
+      const ano = referenceDate.getFullYear();
+      const mes = referenceDate.getMonth();
+      dataInicio = new Date(Date.UTC(ano, mes - 5, 1));
+      dataFim = new Date(Date.UTC(ano, mes + 1, 1));
+    } else if (tipoPeriodoInput === 'ANO_ATUAL') {
+      const ano = referenceDate.getFullYear();
+      dataInicio = new Date(Date.UTC(ano, 0, 1));
+      dataFim = new Date(Date.UTC(ano + 1, 0, 1));
     } else if (dataInicioInput) {
       dataInicio = new Date(dataInicioInput);
       dataFim = new Date(dataInicio);
@@ -183,14 +270,25 @@ export class RelatoriosReadModelService {
           lt: dataFim,
         },
       },
-      select: { tipo: true, valor: true },
+      select: { tipo: true, valor: true, data: true },
+      orderBy: { data: 'asc' },
     });
 
     let entradasDec = new Prisma.Decimal(0);
     let saidasDec = new Prisma.Decimal(0);
 
+    // Agrupar movimentações do período por dia para o histórico diário
+    const mapaDias = new Map<string, { receita: number; despesa: number }>();
+
     for (const m of movimentacoesPeriodo) {
       const val = new Prisma.Decimal(m.valor || 0);
+      const dataObj = new Date((m as any).data || dataInicio);
+      const diaKey = `${dataObj.getUTCDate().toString().padStart(2, '0')}/${(dataObj.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      if (!mapaDias.has(diaKey)) {
+        mapaDias.set(diaKey, { receita: 0, despesa: 0 });
+      }
+      const itemDia = mapaDias.get(diaKey)!;
+
       if (
         m.tipo === TipoMovimentacao.RECEITA ||
         m.tipo === TipoMovimentacao.SALDO_INICIAL ||
@@ -198,6 +296,7 @@ export class RelatoriosReadModelService {
         m.tipo === TipoMovimentacao.RESGATE
       ) {
         entradasDec = entradasDec.plus(val);
+        itemDia.receita += val.toNumber();
       } else if (
         m.tipo === TipoMovimentacao.DESPESA ||
         m.tipo === TipoMovimentacao.TRANSFERENCIA_SAIDA ||
@@ -205,6 +304,7 @@ export class RelatoriosReadModelService {
         m.tipo === TipoMovimentacao.INVESTIMENTO
       ) {
         saidasDec = saidasDec.plus(val);
+        itemDia.despesa += val.toNumber();
       }
     }
 
@@ -220,13 +320,51 @@ export class RelatoriosReadModelService {
     }
 
     const resultadoPeriodoDec = entradasDec.minus(saidasDec);
+    const totalReceitas = this.sanitizarNumero(entradasDec.toNumber());
+    const totalDespesas = this.sanitizarNumero(saidasDec.toNumber());
+    const saldoLiquido = this.sanitizarNumero(resultadoPeriodoDec.toNumber());
+    const taxaPoupanca = totalReceitas > 0
+      ? this.sanitizarNumero(Math.max(0, ((totalReceitas - totalDespesas) / totalReceitas) * 100))
+      : 0;
+
+    let saldoAcumuladoTemp = saldoInicialDec.toNumber();
+    const historicoDiario: Array<{ data: string; receita: number; despesa: number; saldoAcumulado: number }> = [];
+
+    if (mapaDias.size > 0) {
+      for (const [dataStr, vals] of mapaDias.entries()) {
+        saldoAcumuladoTemp += (vals.receita - vals.despesa);
+        historicoDiario.push({
+          data: dataStr,
+          receita: this.sanitizarNumero(vals.receita),
+          despesa: this.sanitizarNumero(vals.despesa),
+          saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp),
+        });
+      }
+    } else {
+      const d1Str = `${dataInicio.getUTCDate().toString().padStart(2, '0')}/${(dataInicio.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      const d2Str = `${dataFim.getUTCDate().toString().padStart(2, '0')}/${(dataFim.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      historicoDiario.push(
+        { data: d1Str, receita: 0, despesa: 0, saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp) },
+        { data: d2Str, receita: 0, despesa: 0, saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp) },
+      );
+    }
 
     return {
       saldoInicial: this.sanitizarNumero(saldoInicialDec.toNumber()),
-      entradas: this.sanitizarNumero(entradasDec.toNumber()),
-      saidas: this.sanitizarNumero(saidasDec.toNumber()),
+      entradas: totalReceitas,
+      saidas: totalDespesas,
       saldoFinal: this.sanitizarNumero(saldoFinalDec.toNumber()),
-      resultadoPeriodo: this.sanitizarNumero(resultadoPeriodoDec.toNumber()),
+      resultadoPeriodo: saldoLiquido,
+      totalReceitas,
+      totalDespesas,
+      saldoLiquido,
+      taxaPoupanca,
+      historicoDiario,
+      comparativoMesAnterior: {
+        receitaVariacaoPct: 0,
+        despesaVariacaoPct: 0,
+        saldoVariacaoPct: 0,
+      },
     };
   }
 
@@ -251,9 +389,10 @@ export class RelatoriosReadModelService {
       include: {
         categoria: true,
       },
+      orderBy: { valor: 'desc' },
     });
 
-    const mapaCategorias = new Map<string, { nome: string; tipo: string; valorDec: Prisma.Decimal }>();
+    const mapaCategorias = new Map<string, { nome: string; tipo: string; icone?: string | null; cor?: string | null; valorDec: Prisma.Decimal; count: number }>();
     let totalGeralDec = new Prisma.Decimal(0);
 
     for (const d of despesas) {
@@ -263,12 +402,15 @@ export class RelatoriosReadModelService {
       const catId = d.categoriaId || 'sem-categoria';
       const catNome = d.categoria?.nome || 'Outros';
       const catTipo = d.categoria?.tipo || 'DESPESA';
+      const catIcone = d.categoria?.icone;
+      const catCor = d.categoria?.cor;
 
       if (!mapaCategorias.has(catId)) {
-        mapaCategorias.set(catId, { nome: catNome, tipo: catTipo, valorDec: val });
+        mapaCategorias.set(catId, { nome: catNome, tipo: catTipo, icone: catIcone, cor: catCor, valorDec: val, count: 1 });
       } else {
         const item = mapaCategorias.get(catId)!;
         item.valorDec = item.valorDec.plus(val);
+        item.count += 1;
       }
     }
 
@@ -284,11 +426,22 @@ export class RelatoriosReadModelService {
         categoriaId,
         nome: item.nome,
         tipo: item.tipo,
+        icone: item.icone || 'category',
+        cor: item.cor || '#C9A74E',
+        quantidadeLancamentos: item.count,
         valor: this.sanitizarNumero(valor),
         percentual: this.sanitizarNumero(percentual),
       });
     }
 
+    const topDespesas = despesas.slice(0, 5).map((d) => ({
+      descricao: d.descricao || 'Despesa',
+      valor: this.sanitizarNumero(Number(d.valor)),
+      data: d.dataVencimento ? d.dataVencimento.toISOString() : new Date().toISOString(),
+      categoria: d.categoria?.nome || 'Outros',
+    }));
+
+    (resultado as any).topDespesas = topDespesas;
     return resultado.sort((a, b) => b.valor - a.valor);
   }
 
@@ -323,12 +476,25 @@ export class RelatoriosReadModelService {
         valorTotalDec = valorTotalDec.plus(new Prisma.Decimal(c.valorTotal || 0));
       }
 
+      const valorTotal = this.sanitizarNumero(valorTotalDec.toNumber());
+      const limiteTotal = this.sanitizarNumero(Number(cartao.limiteTotal || 0));
+      const limiteUsado = valorTotal;
+      const percentualUso = limiteTotal > 0
+        ? Math.min(100, this.sanitizarNumero((limiteUsado / limiteTotal) * 100))
+        : 0;
+
       resultado.push({
         cartaoId: cartao.id,
         nome: cartao.nome,
+        nomeCartao: cartao.nome,
         bandeira: cartao.bandeira,
-        valorTotal: this.sanitizarNumero(valorTotalDec.toNumber()),
+        cor: cartao.cor || '#C9A74E',
+        valorTotal,
         qtdTransacoes: compras.length,
+        limiteTotal,
+        limiteUsado,
+        percentualUso,
+        valorFaturaAtual: valorTotal,
       });
     }
 
@@ -371,8 +537,11 @@ export class RelatoriosReadModelService {
         tipo: 'META',
         nome: m.nome,
         progressoPercentual: this.sanitizarNumero(progresso),
+        percentualConcluido: this.sanitizarNumero(progresso),
         valorAlvoOuEstimado: this.sanitizarNumero(valorAlvo),
+        valorAlvo: this.sanitizarNumero(valorAlvo),
         valorAtualOuGasto: this.sanitizarNumero(valorAtual),
+        valorAtual: this.sanitizarNumero(valorAtual),
         status: m.status,
       });
     }
@@ -386,9 +555,13 @@ export class RelatoriosReadModelService {
         id: p.id,
         tipo: 'PROJETO',
         nome: p.nome,
+        titulo: p.nome,
         progressoPercentual: this.sanitizarNumero(progresso),
+        percentualProgresso: this.sanitizarNumero(progresso),
         valorAlvoOuEstimado: this.sanitizarNumero(orcamentoEstimado),
+        orcamentoTotal: this.sanitizarNumero(orcamentoEstimado),
         valorAtualOuGasto: this.sanitizarNumero(totalGasto),
+        valorGasto: this.sanitizarNumero(totalGasto),
         status: p.status,
       });
     }
