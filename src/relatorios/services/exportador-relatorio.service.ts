@@ -323,142 +323,441 @@ export class ExportadorRelatorioService {
   }
 
   /**
-   * Gera relatório em formato Excel (.xlsx) com múltiplas abas.
+   * Gera relatório em formato Excel (.xlsx) Executivo de Alto Padrão com Design System Alicerce.
    */
   async gerarExcel(dados: RelatoriosResult): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Alicerce Backend';
+    workbook.creator = 'Alicerce Family Office & Private Analytics';
+    workbook.lastModifiedBy = 'Alicerce Core';
     workbook.created = new Date();
+    workbook.modified = new Date();
 
-    // Aba 1: Fluxo de Caixa
-    const sheetFluxo = workbook.addWorksheet('Fluxo de Caixa');
-    sheetFluxo.columns = [
-      { header: 'Métrica', key: 'metrica', width: 25 },
-      { header: 'Valor (R$)', key: 'valor', width: 20 },
-    ];
-    sheetFluxo.addRows([
-      { metrica: 'Saldo Inicial', valor: dados.fluxoCaixa.saldoInicial },
-      { metrica: 'Entradas (+)', valor: dados.fluxoCaixa.entradas },
-      { metrica: 'Saídas (-)', valor: dados.fluxoCaixa.saidas },
-      { metrica: 'Resultado do Período', valor: dados.fluxoCaixa.resultadoPeriodo },
-      { metrica: 'Saldo Final', valor: dados.fluxoCaixa.saldoFinal },
-    ]);
+    const dInicio = dados.periodo?.dataInicio ? new Date(dados.periodo.dataInicio).toLocaleDateString('pt-BR') : 'N/A';
+    const dFim = dados.periodo?.dataFim ? new Date(dados.periodo.dataFim).toLocaleDateString('pt-BR') : 'N/A';
+    const emissao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    // Aba 2: Categorias
-    const sheetCat = workbook.addWorksheet('Categorias');
-    sheetCat.columns = [
-      { header: 'ID Categoria', key: 'id', width: 36 },
-      { header: 'Nome', key: 'nome', width: 25 },
-      { header: 'Tipo', key: 'tipo', width: 15 },
-      { header: 'Valor (R$)', key: 'valor', width: 15 },
-      { header: 'Percentual (%)', key: 'percentual', width: 15 },
+    // Cores Institucionais
+    const COLOR_BORDO_PRIMARY = '1E060D';
+    const COLOR_BORDO_LIGHT = '2D0B14';
+    const COLOR_GOLD_PRIMARY = 'C5A059';
+    const COLOR_GOLD_CHAMPAGNE = 'E8D39E';
+    const COLOR_ZEBRA_BG = 'FAF9F6';
+    const COLOR_BORDER = 'E6DEC9';
+
+    const aplicarCabecalhoInstitucional = (sheet: ExcelJS.Worksheet, tituloAba: string, maxCol: number) => {
+      sheet.views = [{ showGridLines: true }];
+
+      // Linha 1: Título Marca
+      sheet.mergeCells(1, 1, 1, maxCol);
+      const row1 = sheet.getRow(1);
+      row1.height = 36;
+      const cell1 = sheet.getCell('A1');
+      cell1.value = 'ALICERCE   •   FAMILY OFFICE & PRIVATE WEALTH MANAGEMENT';
+      cell1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_PRIMARY } };
+      cell1.font = { name: 'Segoe UI', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell1.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+
+      // Linha 2: Subtítulo
+      sheet.mergeCells(2, 1, 2, maxCol);
+      const row2 = sheet.getRow(2);
+      row2.height = 24;
+      const cell2 = sheet.getCell('A2');
+      cell2.value = tituloAba.toUpperCase();
+      cell2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_LIGHT } };
+      cell2.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: COLOR_GOLD_CHAMPAGNE } };
+      cell2.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+
+      // Linha 3: Metadados
+      sheet.mergeCells(3, 1, 3, maxCol);
+      const row3 = sheet.getRow(3);
+      row3.height = 20;
+      const cell3 = sheet.getCell('A3');
+      cell3.value = `Competência: ${dInicio} até ${dFim}   |   Emissão: ${emissao}   |   Base: Auditada e Consolidada`;
+      cell3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FBF9F5' } };
+      cell3.font = { name: 'Segoe UI', size: 8.5, italic: true, color: { argb: '6B7280' } };
+      cell3.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      cell3.border = { bottom: { style: 'thin', color: { argb: COLOR_BORDER } } };
+
+      // Linha 4: Espaço
+      sheet.getRow(4).height = 12;
+    };
+
+    // ==========================================
+    // ABA 1: FLUXO DE CAIXA
+    // ==========================================
+    const sheetFluxo = workbook.addWorksheet('Fluxo de Caixa', {
+      properties: { tabColor: { argb: COLOR_GOLD_PRIMARY } },
+    });
+    aplicarCabecalhoInstitucional(sheetFluxo, 'Resumo Executivo do Fluxo de Caixa', 3);
+
+    sheetFluxo.getColumn(1).width = 34;
+    sheetFluxo.getColumn(2).width = 25;
+    sheetFluxo.getColumn(3).width = 30;
+
+    const headerFluxo = sheetFluxo.getRow(5);
+    headerFluxo.height = 24;
+    headerFluxo.values = ['Métrica Patrimonial', 'Valor Consolidado (R$)', 'Status / Observação'];
+    headerFluxo.eachCell((cell, colNumber) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_PRIMARY } };
+      cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: COLOR_GOLD_CHAMPAGNE } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber === 2 ? 'right' : 'left' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } },
+        bottom: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } },
+      };
+    });
+
+    const resPeriodo = this.sanitizarNumero(dados.fluxoCaixa.resultadoPeriodo);
+    const taxaPoupanca = this.sanitizarNumero(dados.fluxoCaixa.taxaPoupanca ?? 0);
+
+    const itensFluxo = [
+      { metrica: 'Saldo Inicial de Caixa', valor: this.sanitizarNumero(dados.fluxoCaixa.saldoInicial), obs: 'Posição na data inicial', numFmt: '"R$" #,##0.00', color: '475569' },
+      { metrica: 'Receitas Totais (+)', valor: this.sanitizarNumero(dados.fluxoCaixa.entradas), obs: 'Entradas e proventos realizados', numFmt: '"R$" #,##0.00', color: '047857' },
+      { metrica: 'Despesas Totais (-)', valor: this.sanitizarNumero(dados.fluxoCaixa.saidas), obs: 'Saídas e pagamentos efetuados', numFmt: '"R$" #,##0.00', color: 'B91C1C' },
+      { metrica: 'Resultado Líquido do Período', valor: resPeriodo, obs: resPeriodo >= 0 ? 'Superávit no período' : 'Déficit no período', numFmt: '"+" "R$" #,##0.00; "-" "R$" #,##0.00', color: resPeriodo >= 0 ? '047857' : 'B91C1C', bold: true, bg: 'FAF9F6' },
+      { metrica: 'Saldo Final Consolidado', valor: this.sanitizarNumero(dados.fluxoCaixa.saldoFinal), obs: 'Disponibilidade imediata apurada', numFmt: '"R$" #,##0.00', color: '1E060D', bold: true, bg: 'FDFBF7', doubleBottom: true },
     ];
-    for (const c of dados.categorias) {
-      sheetCat.addRow({
-        id: c.categoriaId,
-        nome: c.nome,
-        tipo: c.tipo,
-        valor: c.valor,
-        percentual: c.percentual,
+
+    itensFluxo.forEach((item, idx) => {
+      const rIdx = 6 + idx;
+      const row = sheetFluxo.getRow(rIdx);
+      row.height = 22;
+      row.values = [item.metrica, item.valor, item.obs];
+
+      const bg = item.bg || (idx % 2 === 0 ? 'FFFFFF' : COLOR_ZEBRA_BG);
+      row.getCell(1).font = { name: 'Segoe UI', size: 9.5, bold: !!item.bold, color: { argb: '1F2937' } };
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+      row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+
+      row.getCell(2).font = { name: 'Segoe UI', size: 10, bold: !!item.bold, color: { argb: item.color || '1F2937' } };
+      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(2).numFmt = item.numFmt;
+      row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+
+      row.getCell(3).font = { name: 'Segoe UI', size: 8.5, color: { argb: '6B7280' } };
+      row.getCell(3).alignment = { vertical: 'middle', horizontal: 'left' };
+      row.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+
+      const borderStyle = item.doubleBottom ? 'double' : 'thin';
+      row.eachCell(cell => {
+        cell.border = {
+          bottom: { style: borderStyle, color: { argb: item.doubleBottom ? COLOR_GOLD_PRIMARY : COLOR_BORDER } },
+        };
+      });
+    });
+
+    // Indicadores Complementares
+    sheetFluxo.getRow(12).height = 12;
+    const rIndicadores = sheetFluxo.getRow(13);
+    rIndicadores.height = 22;
+    rIndicadores.values = ['Taxa de Poupança Acumulada', taxaPoupanca / 100, resPeriodo >= 0 ? 'Eficiência Financeira Alta' : 'Atenção ao Fluxo'];
+    rIndicadores.getCell(1).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '6B7280' } };
+    rIndicadores.getCell(2).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '8C6D2D' } };
+    rIndicadores.getCell(2).numFmt = '0.0%';
+    rIndicadores.getCell(2).alignment = { vertical: 'middle', horizontal: 'right' };
+    rIndicadores.getCell(3).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: resPeriodo >= 0 ? '047857' : 'B91C1C' } };
+
+    // ==========================================
+    // ABA 2: CATEGORIAS
+    // ==========================================
+    const sheetCat = workbook.addWorksheet('Despesas por Categoria', {
+      properties: { tabColor: { argb: '881337' } },
+    });
+    aplicarCabecalhoInstitucional(sheetCat, 'Composição de Despesas por Categoria', 5);
+
+    sheetCat.getColumn(1).width = 32;
+    sheetCat.getColumn(2).width = 18;
+    sheetCat.getColumn(3).width = 18;
+    sheetCat.getColumn(4).width = 24;
+    sheetCat.getColumn(5).width = 20;
+
+    const headerCat = sheetCat.getRow(5);
+    headerCat.height = 24;
+    headerCat.values = ['Categoria', 'Natureza', 'Lançamentos', 'Valor Total (R$)', 'Participação (%)'];
+    headerCat.eachCell((cell, colNumber) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_PRIMARY } };
+      cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: COLOR_GOLD_CHAMPAGNE } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber >= 3 ? (colNumber === 3 ? 'center' : 'right') : 'left' };
+      cell.border = { top: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } }, bottom: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } } };
+    });
+
+    const cats = Array.isArray(dados.categorias) ? dados.categorias : (dados.categorias as any)?.distribuicaoDespesas || [];
+    cats.forEach((c: any, idx: number) => {
+      const rIdx = 6 + idx;
+      const row = sheetCat.getRow(rIdx);
+      row.height = 20;
+      const v = this.sanitizarNumero(c.valor);
+      const p = this.sanitizarNumero(c.percentual);
+
+      row.values = [c.nome, c.tipo || 'DESPESA', c.quantidadeLancamentos ?? 1, v, p / 100];
+
+      const bg = idx % 2 === 0 ? 'FFFFFF' : COLOR_ZEBRA_BG;
+      row.getCell(1).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '1F2937' } };
+      row.getCell(2).font = { name: 'Segoe UI', size: 8.5, color: { argb: '6B7280' } };
+      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(3).font = { name: 'Segoe UI', size: 9, color: { argb: '4B5563' } };
+      row.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(4).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '1F2937' } };
+      row.getCell(4).numFmt = '"R$" #,##0.00';
+      row.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(5).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '8C6D2D' } };
+      row.getCell(5).numFmt = '0.0%';
+      row.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' };
+
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.border = { bottom: { style: 'thin', color: { argb: COLOR_BORDER } } };
+      });
+    });
+
+    if (cats.length > 0) {
+      const rTot = 6 + cats.length;
+      const rowTot = sheetCat.getRow(rTot);
+      rowTot.height = 22;
+      rowTot.values = ['TOTAL CONSOLIDADO', '', { formula: `SUM(C6:C${rTot - 1})` }, { formula: `SUM(D6:D${rTot - 1})` }, 1.0];
+      rowTot.getCell(1).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '1E060D' } };
+      rowTot.getCell(3).font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '1E060D' } };
+      rowTot.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      rowTot.getCell(4).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '1E060D' } };
+      rowTot.getCell(4).numFmt = '"R$" #,##0.00';
+      rowTot.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' };
+      rowTot.getCell(5).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '8C6D2D' } };
+      rowTot.getCell(5).numFmt = '0.0%';
+      rowTot.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' };
+      rowTot.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FDFBF7' } };
+        cell.border = {
+          top: { style: 'thin', color: { argb: COLOR_BORDER } },
+          bottom: { style: 'double', color: { argb: COLOR_GOLD_PRIMARY } },
+        };
       });
     }
 
-    // Aba 3: Cartões de Crédito
-    const sheetCartoes = workbook.addWorksheet('Cartões de Crédito');
-    sheetCartoes.columns = [
-      { header: 'ID Cartão', key: 'id', width: 36 },
-      { header: 'Nome', key: 'nome', width: 25 },
-      { header: 'Bandeira', key: 'bandeira', width: 15 },
-      { header: 'Qtd Transações', key: 'qtd', width: 15 },
-      { header: 'Valor Total (R$)', key: 'valorTotal', width: 20 },
-    ];
-    for (const cr of dados.cartoes) {
-      sheetCartoes.addRow({
-        id: cr.cartaoId,
-        nome: cr.nome,
-        bandeira: cr.bandeira,
-        qtd: cr.qtdTransacoes,
-        valorTotal: cr.valorTotal,
-      });
-    }
+    // ==========================================
+    // ABA 3: CARTÕES DE CRÉDITO
+    // ==========================================
+    const sheetCartoes = workbook.addWorksheet('Cartões de Crédito', {
+      properties: { tabColor: { argb: COLOR_BORDO_PRIMARY } },
+    });
+    aplicarCabecalhoInstitucional(sheetCartoes, 'Extrato de Cartões de Crédito e Faturas', 6);
 
-    // Aba 4: Metas e Projetos
-    const sheetMP = workbook.addWorksheet('Metas e Projetos');
-    sheetMP.columns = [
-      { header: 'ID', key: 'id', width: 36 },
-      { header: 'Tipo', key: 'tipo', width: 12 },
-      { header: 'Nome', key: 'nome', width: 25 },
-      { header: 'Valor Alvo/Estimado (R$)', key: 'alvo', width: 22 },
-      { header: 'Valor Atual/Gasto (R$)', key: 'atual', width: 22 },
-      { header: 'Progresso (%)', key: 'progresso', width: 15 },
-      { header: 'Status', key: 'status', width: 15 },
-    ];
-    for (const mp of dados.metasProjetos) {
-      sheetMP.addRow({
-        id: mp.id,
-        tipo: mp.tipo,
-        nome: mp.nome,
-        alvo: mp.valorAlvoOuEstimado,
-        atual: mp.valorAtualOuGasto,
-        progresso: mp.progressoPercentual,
-        status: mp.status,
+    sheetCartoes.getColumn(1).width = 30;
+    sheetCartoes.getColumn(2).width = 18;
+    sheetCartoes.getColumn(3).width = 18;
+    sheetCartoes.getColumn(4).width = 24;
+    sheetCartoes.getColumn(5).width = 24;
+    sheetCartoes.getColumn(6).width = 20;
+
+    const headerCartao = sheetCartoes.getRow(5);
+    headerCartao.height = 24;
+    headerCartao.values = ['Nome do Cartão', 'Bandeira', 'Transações', 'Fatura Atual (R$)', 'Limite Total (R$)', 'Uso de Limite (%)'];
+    headerCartao.eachCell((cell, colNumber) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_PRIMARY } };
+      cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: COLOR_GOLD_CHAMPAGNE } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber >= 3 ? (colNumber === 3 ? 'center' : 'right') : 'left' };
+      cell.border = { top: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } }, bottom: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } } };
+    });
+
+    const cartoes = Array.isArray(dados.cartoes) ? dados.cartoes : (dados.cartoes as any)?.usoPorCartao || [];
+    cartoes.forEach((cr: any, idx: number) => {
+      const rIdx = 6 + idx;
+      const row = sheetCartoes.getRow(rIdx);
+      row.height = 20;
+      const lim = this.sanitizarNumero(cr.limiteTotal || 0);
+      const fat = this.sanitizarNumero(cr.valorTotal ?? cr.valorFaturaAtual ?? 0);
+      const usoPct = lim > 0 ? fat / lim : 0;
+
+      row.values = [cr.nomeCartao || cr.nome, cr.bandeira || 'OUTROS', cr.qtdTransacoes || 0, fat, lim, usoPct];
+
+      const bg = idx % 2 === 0 ? 'FFFFFF' : COLOR_ZEBRA_BG;
+      row.getCell(1).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '1F2937' } };
+      row.getCell(2).font = { name: 'Segoe UI', size: 8.5, color: { argb: '4B5563' } };
+      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(3).font = { name: 'Segoe UI', size: 9, color: { argb: '6B7280' } };
+      row.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(4).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: fat > 0 ? '1E060D' : '6B7280' } };
+      row.getCell(4).numFmt = '"R$" #,##0.00';
+      row.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(5).font = { name: 'Segoe UI', size: 9.5, color: { argb: '4B5563' } };
+      row.getCell(5).numFmt = '"R$" #,##0.00';
+      row.getCell(5).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(6).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: usoPct > 0.7 ? 'B91C1C' : '8C6D2D' } };
+      row.getCell(6).numFmt = '0.0%';
+      row.getCell(6).alignment = { vertical: 'middle', horizontal: 'right' };
+
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.border = { bottom: { style: 'thin', color: { argb: COLOR_BORDER } } };
       });
-    }
+    });
+
+    // ==========================================
+    // ABA 4: METAS E PROJETOS
+    // ==========================================
+    const sheetMP = workbook.addWorksheet('Metas e Projetos', {
+      properties: { tabColor: { argb: '059669' } },
+    });
+    aplicarCabecalhoInstitucional(sheetMP, 'Acompanhamento de Metas e Projetos Estratégicos', 6);
+
+    sheetMP.getColumn(1).width = 16;
+    sheetMP.getColumn(2).width = 36;
+    sheetMP.getColumn(3).width = 24;
+    sheetMP.getColumn(4).width = 24;
+    sheetMP.getColumn(5).width = 18;
+    sheetMP.getColumn(6).width = 20;
+
+    const headerMP = sheetMP.getRow(5);
+    headerMP.height = 24;
+    headerMP.values = ['Tipo', 'Objetivo / Projeto', 'Valor Atual (R$)', 'Valor Alvo / Estimado (R$)', 'Progresso (%)', 'Status'];
+    headerMP.eachCell((cell, colNumber) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_BORDO_PRIMARY } };
+      cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: COLOR_GOLD_CHAMPAGNE } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber >= 3 ? (colNumber >= 5 ? 'center' : 'right') : 'left' };
+      cell.border = { top: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } }, bottom: { style: 'thin', color: { argb: COLOR_GOLD_PRIMARY } } };
+    });
+
+    const metasProj = Array.isArray(dados.metasProjetos) ? dados.metasProjetos : [
+      ...((dados.metasProjetos as any)?.metasStatus || []),
+      ...((dados.metasProjetos as any)?.projetosStatus || []),
+    ];
+
+    metasProj.forEach((mp: any, idx: number) => {
+      const rIdx = 6 + idx;
+      const row = sheetMP.getRow(rIdx);
+      row.height = 20;
+      const prog = this.sanitizarNumero(mp.progressoPercentual ?? mp.percentualConcluido ?? mp.percentualProgresso ?? 0) / 100;
+      const tipo = mp.tipo || (mp.metaId ? 'META' : 'PROJETO');
+      const nome = mp.nome || mp.titulo;
+      const atual = this.sanitizarNumero(mp.valorAtualOuGasto ?? mp.valorAtual ?? mp.valorGasto ?? 0);
+      const alvo = this.sanitizarNumero(mp.valorAlvoOuEstimado ?? mp.valorAlvo ?? mp.orcamentoTotal ?? 0);
+      const status = this.formatarStatus(mp.status);
+
+      row.values = [tipo, nome, atual, alvo, prog, status];
+
+      const bg = idx % 2 === 0 ? 'FFFFFF' : COLOR_ZEBRA_BG;
+      row.getCell(1).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: tipo === 'META' ? '8C6D2D' : '881337' } };
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(2).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '1F2937' } };
+      row.getCell(3).font = { name: 'Segoe UI', size: 9.5, color: { argb: '1F2937' } };
+      row.getCell(3).numFmt = '"R$" #,##0.00';
+      row.getCell(3).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(4).font = { name: 'Segoe UI', size: 9.5, color: { argb: '6B7280' } };
+      row.getCell(4).numFmt = '"R$" #,##0.00';
+      row.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(5).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: prog >= 1 ? '047857' : '8C6D2D' } };
+      row.getCell(5).numFmt = '0.0%';
+      row.getCell(5).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(6).font = { name: 'Segoe UI', size: 8.5, bold: true, color: { argb: status === 'CONCLUÍDO' ? '047857' : '4B5563' } };
+      row.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.border = { bottom: { style: 'thin', color: { argb: COLOR_BORDER } } };
+      });
+    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }
 
   /**
-   * Gera relatório em formato CSV legível em UTF-8.
+   * Gera relatório em formato CSV Executivo com codificação UTF-8 (BOM).
    */
   async gerarCSV(dados: RelatoriosResult): Promise<Buffer> {
     const lines: string[] = [];
 
-    lines.push('=== RELATORIO FINANCEIRO ANALITICO ===');
-    const dataInicioStr = dados.periodo?.dataInicio
-      ? new Date(dados.periodo.dataInicio).toISOString()
-      : '';
-    const dataFimStr = dados.periodo?.dataFim
-      ? new Date(dados.periodo.dataFim).toISOString()
-      : '';
-    lines.push(`Periodo;${dataInicioStr};${dataFimStr}`);
+    const dInicio = dados.periodo?.dataInicio
+      ? new Date(dados.periodo.dataInicio).toLocaleDateString('pt-BR')
+      : 'N/A';
+    const dFim = dados.periodo?.dataFim
+      ? new Date(dados.periodo.dataFim).toLocaleDateString('pt-BR')
+      : 'N/A';
+    const emissao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Cabeçalho Corporativo
+    lines.push('ALICERCE • FAMILY OFFICE & PRIVATE WEALTH MANAGEMENT');
+    lines.push('RELATÓRIO FINANCEIRO ANALÍTICO');
+    lines.push(`Competência: ${dInicio} até ${dFim};Emissão: ${emissao};Base: Auditada e Consolidada`);
     lines.push('');
 
-    lines.push('=== FLUXO DE CAIXA ===');
-    lines.push('Saldo Inicial;Entradas;Saidas;Resultado do Periodo;Saldo Final');
-    lines.push(
-      `${dados.fluxoCaixa.saldoInicial};${dados.fluxoCaixa.entradas};${dados.fluxoCaixa.saidas};${dados.fluxoCaixa.resultadoPeriodo};${dados.fluxoCaixa.saldoFinal}`,
-    );
+    // 2. Seção I: Fluxo de Caixa
+    lines.push('[I. RESUMO EXECUTIVO DO FLUXO DE CAIXA]');
+    lines.push('Métrica Patrimonial;Valor Consolidado (R$);Status / Observação');
+
+    const sInicial = this.sanitizarNumero(dados.fluxoCaixa.saldoInicial);
+    const entradas = this.sanitizarNumero(dados.fluxoCaixa.entradas);
+    const saidas = this.sanitizarNumero(dados.fluxoCaixa.saidas);
+    const resPeriodo = this.sanitizarNumero(dados.fluxoCaixa.resultadoPeriodo);
+    const sFinal = this.sanitizarNumero(dados.fluxoCaixa.saldoFinal);
+    const taxaPoupanca = this.sanitizarNumero(dados.fluxoCaixa.taxaPoupanca ?? 0);
+
+    lines.push(`Saldo Inicial de Caixa;${this.formatarMoeda(sInicial)};Posição na data inicial`);
+    lines.push(`Receitas Totais (+);${this.formatarMoeda(entradas)};Entradas e proventos realizados`);
+    lines.push(`Despesas Totais (-);${this.formatarMoeda(saidas)};Saídas e pagamentos efetuados`);
+    lines.push(`Resultado Líquido do Período;${resPeriodo >= 0 ? '+' : ''}${this.formatarMoeda(resPeriodo)};${resPeriodo >= 0 ? 'Superávit no período' : 'Déficit no período'}`);
+    lines.push(`Saldo Final Consolidado;${this.formatarMoeda(sFinal)};Disponibilidade imediata apurada`);
+    lines.push(`Taxa de Poupança Acumulada;${taxaPoupanca.toFixed(1)}%;${resPeriodo >= 0 ? 'Eficiência Financeira Alta' : 'Atenção ao Fluxo'}`);
     lines.push('');
 
-    lines.push('=== CATEGORIAS ===');
-    lines.push('ID;Nome;Tipo;Valor;Percentual');
-    for (const c of dados.categorias) {
-      lines.push(
-        `"${c.categoriaId}";"${c.nome}";"${c.tipo}";${c.valor};${c.percentual}%`,
-      );
+    // 3. Seção II: Categorias
+    lines.push('[II. COMPOSIÇÃO DE DESPESAS POR CATEGORIA]');
+    lines.push('Categoria;Natureza;Lançamentos;Valor Total (R$);Participação (%)');
+
+    const cats = Array.isArray(dados.categorias) ? dados.categorias : ((dados.categorias as any)?.distribuicaoDespesas || []);
+    let totalCatValor = 0;
+    let totalCatLancamentos = 0;
+
+    for (const c of cats) {
+      const v = this.sanitizarNumero(c.valor);
+      const p = this.sanitizarNumero(c.percentual);
+      const qtd = c.quantidadeLancamentos ?? 1;
+      totalCatValor += v;
+      totalCatLancamentos += qtd;
+      lines.push(`"${c.nome}";"${c.tipo || 'DESPESA'}";${qtd};${this.formatarMoeda(v)};${p.toFixed(1)}%`);
+    }
+
+    if (cats.length > 0) {
+      lines.push(`TOTAL CONSOLIDADO;;${totalCatLancamentos};${this.formatarMoeda(totalCatValor)};100,0%`);
     }
     lines.push('');
 
-    lines.push('=== CARTOES DE CREDITO ===');
-    lines.push('ID;Nome;Bandeira;Qtd Transacoes;Valor Total');
-    for (const cr of dados.cartoes) {
-      lines.push(
-        `"${cr.cartaoId}";"${cr.nome}";"${cr.bandeira}";${cr.qtdTransacoes};${cr.valorTotal}`,
-      );
+    // 4. Seção III: Cartões de Crédito
+    lines.push('[III. CARTÕES DE CRÉDITO & FATURAS]');
+    lines.push('Nome do Cartão;Bandeira;Transações;Fatura Atual (R$);Limite Total (R$);Uso de Limite (%)');
+
+    const cartoes = Array.isArray(dados.cartoes) ? dados.cartoes : ((dados.cartoes as any)?.usoPorCartao || []);
+    for (const cr of cartoes) {
+      const lim = this.sanitizarNumero(cr.limiteTotal || 0);
+      const fat = this.sanitizarNumero(cr.valorTotal ?? cr.valorFaturaAtual ?? 0);
+      const usoPct = lim > 0 ? (fat / lim) * 100 : 0;
+      const qtd = cr.qtdTransacoes || 0;
+      const textoQtd = qtd === 1 ? '1 compra' : `${qtd} compras`;
+      lines.push(`"${cr.nomeCartao || cr.nome}";"${cr.bandeira || 'OUTROS'}";${textoQtd};${this.formatarMoeda(fat)};${this.formatarMoeda(lim)};${usoPct.toFixed(1)}%`);
     }
     lines.push('');
 
-    lines.push('=== METAS E PROJETOS ===');
-    lines.push('ID;Tipo;Nome;Valor Alvo/Estimado;Valor Atual/Gasto;Progresso (%);Status');
-    for (const mp of dados.metasProjetos) {
-      lines.push(
-        `"${mp.id}";"${mp.tipo}";"${mp.nome}";${mp.valorAlvoOuEstimado};${mp.valorAtualOuGasto};${mp.progressoPercentual}%;"${mp.status}"`,
-      );
+    // 5. Seção IV: Metas e Projetos
+    lines.push('[IV. METAS E PROJETOS ESTRATÉGICOS]');
+    lines.push('Tipo;Objetivo / Projeto;Valor Atual (R$);Valor Alvo / Estimado (R$);Progresso (%);Status');
+
+    const metasProj = Array.isArray(dados.metasProjetos) ? dados.metasProjetos : [
+      ...((dados.metasProjetos as any)?.metasStatus || []),
+      ...((dados.metasProjetos as any)?.projetosStatus || []),
+    ];
+
+    for (const mp of metasProj) {
+      const prog = this.sanitizarNumero(mp.progressoPercentual ?? mp.percentualConcluido ?? mp.percentualProgresso ?? 0);
+      const tipo = mp.tipo || (mp.metaId ? 'META' : 'PROJETO');
+      const nome = mp.nome || mp.titulo;
+      const atual = this.sanitizarNumero(mp.valorAtualOuGasto ?? mp.valorAtual ?? mp.valorGasto ?? 0);
+      const alvo = this.sanitizarNumero(mp.valorAlvoOuEstimado ?? mp.valorAlvo ?? mp.orcamentoTotal ?? 0);
+      const status = this.formatarStatus(mp.status);
+
+      lines.push(`"${tipo}";"${nome}";${this.formatarMoeda(atual)};${this.formatarMoeda(alvo)};${prog.toFixed(1)}%;"${status}"`);
     }
 
-    return Buffer.from(lines.join('\n'), 'utf-8');
+    // Adicionar UTF-8 BOM (\uFEFF) para garantir renderização de acentos no Excel / WPS Office do Windows
+    return Buffer.from('\uFEFF' + lines.join('\r\n'), 'utf-8');
   }
 
   private desenharOrnamentoCanto(doc: PDFKit.PDFDocument, x: number, y: number): void {

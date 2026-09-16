@@ -92,22 +92,24 @@ describe('ExportadorRelatorioService (Pure Domain Export Engine)', () => {
     expect(zipHeader).toBe('PK');
   });
 
-  it('Caso 6: deve gerar Formato CSV em Buffer legível em UTF-8', async () => {
+  it('Caso 6: deve gerar Formato CSV em Buffer legível em UTF-8 com BOM', async () => {
     const csvBuffer = await service.gerarCSV(mockRelatoriosResult);
 
     expect(Buffer.isBuffer(csvBuffer)).toBe(true);
     expect(csvBuffer.length).toBeGreaterThan(0);
 
     const csvContent = csvBuffer.toString('utf-8');
-    expect(csvContent).toContain('=== RELATORIO FINANCEIRO ANALITICO ===');
-    expect(csvContent).toContain('=== FLUXO DE CAIXA ===');
-    expect(csvContent).toContain('1000;5000;2000;3000;4000');
-    expect(csvContent).toContain('=== CATEGORIAS ===');
-    expect(csvContent).toContain('"cat-1";"Alimentação";"DESPESA";1500;75%');
-    expect(csvContent).toContain('=== CARTOES DE CREDITO ===');
-    expect(csvContent).toContain('"card-1";"Cartão Nubank";"MASTERCARD";5;1200');
-    expect(csvContent).toContain('=== METAS E PROJETOS ===');
-    expect(csvContent).toContain('"meta-1";"META";"Reserva de Emergência";10000;5000;50%;"ATIVA"');
+    expect(csvContent).toContain('ALICERCE • FAMILY OFFICE & PRIVATE WEALTH MANAGEMENT');
+    expect(csvContent).toContain('RELATÓRIO FINANCEIRO ANALÍTICO');
+    expect(csvContent).toContain('[I. RESUMO EXECUTIVO DO FLUXO DE CAIXA]');
+    expect(csvContent).toContain('Saldo Inicial de Caixa;1.000,00');
+    expect(csvContent).toContain('Receitas Totais (+);5.000,00');
+    expect(csvContent).toContain('[II. COMPOSIÇÃO DE DESPESAS POR CATEGORIA]');
+    expect(csvContent).toContain('"Alimentação";"DESPESA";1;1.500,00;75.0%');
+    expect(csvContent).toContain('[III. CARTÕES DE CRÉDITO & FATURAS]');
+    expect(csvContent).toContain('"Cartão Nubank";"MASTERCARD"');
+    expect(csvContent).toContain('[IV. METAS E PROJETOS ESTRATÉGICOS]');
+    expect(csvContent).toContain('"META";"Reserva de Emergência";5.000,00;10.000,00;50.0%;"ATIVA"');
   });
 
   it('Caso 8: deve tratar Zero Absoluto sem NaN/Infinity nos relatórios exportados', async () => {
