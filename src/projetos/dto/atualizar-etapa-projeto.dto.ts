@@ -1,19 +1,20 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
-  IsNotEmpty,
   IsOptional,
   IsInt,
   Min,
   IsDateString,
   IsNumber,
+  IsEnum,
 } from 'class-validator';
+import { StatusEtapa } from '@prisma/client';
 
-export class CriarEtapaProjetoDto {
-  @ApiProperty({ description: 'Nome da etapa do projeto' })
+export class AtualizarEtapaProjetoDto {
+  @ApiPropertyOptional({ description: 'Nome da etapa do projeto' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'O nome da etapa é obrigatório.' })
-  nome: string;
+  nome?: string;
 
   @ApiPropertyOptional({ description: 'Descrição detalhada da etapa' })
   @IsOptional()
@@ -26,10 +27,20 @@ export class CriarEtapaProjetoDto {
   @Min(1, { message: 'A ordem da etapa deve ser no mínimo 1.' })
   ordem?: number;
 
+  @ApiPropertyOptional({ description: 'Status da etapa', enum: StatusEtapa })
+  @IsOptional()
+  @IsEnum(StatusEtapa, { message: 'Status da etapa inválido.' })
+  status?: StatusEtapa;
+
   @ApiPropertyOptional({ description: 'Data de início prevista da etapa (ISO 8601)' })
   @IsOptional()
   @IsDateString({}, { message: 'Data de início deve ser uma data ISO válida.' })
   dataInicio?: string;
+
+  @ApiPropertyOptional({ description: 'Data de conclusão da etapa (ISO 8601)' })
+  @IsOptional()
+  @IsDateString({}, { message: 'Data de conclusão deve ser uma data ISO válida.' })
+  dataConclusao?: string;
 
   @ApiPropertyOptional({ description: 'Custo estimado da etapa (R$)' })
   @IsOptional()

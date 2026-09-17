@@ -12,6 +12,7 @@ import { ItemProjetoEntity } from './domain/entities/item-projeto.entity';
 import { CriarProjetoDto } from './dto/criar-projeto.dto';
 import { AtualizarProjetoDto } from './dto/atualizar-projeto.dto';
 import { CriarEtapaProjetoDto } from './dto/criar-etapa-projeto.dto';
+import { AtualizarEtapaProjetoDto } from './dto/atualizar-etapa-projeto.dto';
 import { ReordenarEtapasDto } from './dto/reordenar-etapas.dto';
 import { VincularItemProjetoDto } from './dto/vincular-item-projeto.dto';
 import { ProjetosReadModelService } from './read-models/projetos-read-model.service';
@@ -170,6 +171,84 @@ export class ProjetosService {
         versao: etapaEntity.versao,
         ativo: etapaEntity.ativo,
       },
+    });
+
+    return this.obterPorId(workspaceId, projetoId);
+  }
+
+  async atualizarEtapa(
+    workspaceId: string,
+    projetoId: string,
+    etapaId: string,
+    dto: AtualizarEtapaProjetoDto,
+  ) {
+    await this.buscarProjetoAtivo(workspaceId, projetoId);
+
+    const etapa = await this.prisma.etapaProjeto.findFirst({
+      where: { id: etapaId, projetoId, workspaceId, ativo: true },
+    });
+
+    if (!etapa) {
+      throw new NotFoundException('Etapa não encontrada.');
+    }
+
+    const data: any = { versao: { increment: 1 } };
+    if (dto.nome !== undefined) data.nome = dto.nome;
+    if (dto.descricao !== undefined) data.descricao = dto.descricao;
+    if (dto.ordem !== undefined) data.ordem = dto.ordem;
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+      if (dto.status === 'CONCLUIDA' && !etapa.dataConclusao) {
+        data.dataConclusao = new Date();
+      }
+    }
+    if (dto.dataInicio !== undefined) {
+      data.dataInicio = dto.dataInicio ? new Date(dto.dataInicio) : null;
+    }
+    if (dto.dataConclusao !== undefined) {
+      data.dataConclusao = dto.dataConclusao ? new Date(dto.dataConclusao) : null;
+    }
+
+    await this.prisma.etapaProjeto.update({
+      where: { id: etapaId },
+      data,
+    });
+
+    return this.obterPorId(workspaceId, projetoId);
+  }
+
+  async removerEtapa(
+    workspaceId: string,
+    projetoId: string,
+    etapaId: string,
+  ) {
+    await this.buscarProjetoAtivo(workspaceId, projetoId);
+
+    const etapa = await this.prisma.etapaProjeto.findFirst({
+      where: { id: etapaId, projetoId, workspaceId, ativo: true },
+    });
+
+    if (!etapa) {
+      throw new NotFoundException('Etapa não encontrada.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Soft delete na etapa
+      await tx.etapaProjeto.update({
+        where: { id: etapaId },
+        data: { ativo: false, versao: { increment: 1 } },
+      });
+
+      // Soft delete nos itens vinculados a esta etapa
+      await tx.itemProjeto.updateMany({
+        where: { etapaId, workspaceId, ativo: true },
+        data: {
+          ativo: false,
+          wishlistVinculoAtivoKey: null,
+          metaVinculoAtivoKey: null,
+          versao: { increment: 1 },
+        },
+      });
     });
 
     return this.obterPorId(workspaceId, projetoId);

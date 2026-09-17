@@ -15,6 +15,7 @@ import { ProjetosService } from './projetos.service';
 import { CriarProjetoDto } from './dto/criar-projeto.dto';
 import { AtualizarProjetoDto } from './dto/atualizar-projeto.dto';
 import { CriarEtapaProjetoDto } from './dto/criar-etapa-projeto.dto';
+import { AtualizarEtapaProjetoDto } from './dto/atualizar-etapa-projeto.dto';
 import { ReordenarEtapasDto } from './dto/reordenar-etapas.dto';
 import { VincularItemProjetoDto } from './dto/vincular-item-projeto.dto';
 
@@ -67,6 +68,27 @@ export class ProjetosController {
     @Body() dto: CriarEtapaProjetoDto,
   ) {
     return this.projetosService.criarEtapa(workspaceId, id, dto);
+  }
+
+  @Patch(':id/etapas/:etapaId')
+  @ApiOperation({ summary: 'Atualizar uma etapa existente do projeto' })
+  async atualizarEtapa(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') projetoId: string,
+    @Param('etapaId') etapaId: string,
+    @Body() dto: AtualizarEtapaProjetoDto,
+  ) {
+    return this.projetosService.atualizarEtapa(workspaceId, projetoId, etapaId, dto);
+  }
+
+  @Delete(':id/etapas/:etapaId')
+  @ApiOperation({ summary: 'Remover uma etapa do projeto' })
+  async removerEtapa(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') projetoId: string,
+    @Param('etapaId') etapaId: string,
+  ) {
+    return this.projetosService.removerEtapa(workspaceId, projetoId, etapaId);
   }
 
   @Patch(':id/etapas/reordenar')
