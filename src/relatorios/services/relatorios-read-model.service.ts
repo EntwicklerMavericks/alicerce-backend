@@ -330,7 +330,18 @@ export class RelatoriosReadModelService {
     let saldoAcumuladoTemp = saldoInicialDec.toNumber();
     const historicoDiario: Array<{ data: string; receita: number; despesa: number; saldoAcumulado: number }> = [];
 
+    const dInicioStr = `${dataInicio.getUTCDate().toString().padStart(2, '0')}/${(dataInicio.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+
     if (mapaDias.size > 0) {
+      if (!mapaDias.has(dInicioStr)) {
+        historicoDiario.push({
+          data: dInicioStr,
+          receita: 0,
+          despesa: 0,
+          saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp),
+        });
+      }
+
       for (const [dataStr, vals] of mapaDias.entries()) {
         saldoAcumuladoTemp += (vals.receita - vals.despesa);
         historicoDiario.push({
@@ -341,10 +352,9 @@ export class RelatoriosReadModelService {
         });
       }
     } else {
-      const d1Str = `${dataInicio.getUTCDate().toString().padStart(2, '0')}/${(dataInicio.getUTCMonth() + 1).toString().padStart(2, '0')}`;
       const d2Str = `${dataFim.getUTCDate().toString().padStart(2, '0')}/${(dataFim.getUTCMonth() + 1).toString().padStart(2, '0')}`;
       historicoDiario.push(
-        { data: d1Str, receita: 0, despesa: 0, saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp) },
+        { data: dInicioStr, receita: 0, despesa: 0, saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp) },
         { data: d2Str, receita: 0, despesa: 0, saldoAcumulado: this.sanitizarNumero(saldoAcumuladoTemp) },
       );
     }
