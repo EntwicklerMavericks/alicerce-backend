@@ -185,12 +185,15 @@ export class AuthService {
     }
 
     if (tokenNoBanco.dataExpiracao < new Date()) {
-      await this.prisma.tokenAtualizacao.delete({ where: { id: tokenNoBanco.id } });
+      await this.prisma.tokenAtualizacao.deleteMany({ where: { id: tokenNoBanco.id } });
       throw new UnauthorizedException('Refresh token expirado. Por favor, faça login novamente.');
     }
 
-    // Rotação de Token: Remove o refresh token atual
-    await this.prisma.tokenAtualizacao.delete({ where: { id: tokenNoBanco.id } });
+    // Rotação de Token: Remove o refresh token atual de forma segura contra concorrência
+    const { count } = await this.prisma.tokenAtualizacao.deleteMany({ where: { id: tokenNoBanco.id } });
+    if (count === 0) {
+      throw new UnauthorizedException('Refresh token já utilizado ou inválido.');
+    }
 
     const primeiroWorkspace = tokenNoBanco.usuario.workspaces[0]?.workspace;
     const workspaceId = primeiroWorkspace?.id || '';
