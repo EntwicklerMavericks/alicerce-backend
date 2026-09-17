@@ -49,11 +49,11 @@ async function main() {
     console.log(`✅ Workspace principal criado: ${workspace.nome}`);
   }
 
-  // Buscar todos os workspaces existentes para popular de forma completa
-  const workspaces = await prisma.workspace.findMany();
+  // Popular exclusivamente o workspace de demonstração (nunca workspaces de usuários reais)
+  const workspaces = [workspace];
 
   for (const ws of workspaces) {
-    console.log(`\n📦 Populando dados no Workspace: "${ws.nome}" (ID: ${ws.id})...`);
+    console.log(`\n📦 Populando dados no Workspace de Demonstração: "${ws.nome}" (ID: ${ws.id})...`);
 
     // ----------------------------------------------------
     // A. PESSOAS & SALÁRIOS (FAMÍLIA)
