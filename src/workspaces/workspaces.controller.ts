@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { WorkspacesService } from './workspaces.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,5 +24,14 @@ export class WorkspacesController {
     @CurrentUser('sub') usuarioId: string,
   ) {
     return this.workspacesService.obterPorId(workspaceId, usuarioId);
+  }
+
+  @Post(':id/resetar-dados')
+  @ApiOperation({ summary: 'Zera e limpa todos os dados financeiros do workspace' })
+  async resetarDados(
+    @Param('id') workspaceId: string,
+    @CurrentUser('sub') usuarioId: string,
+  ) {
+    return this.workspacesService.resetarDadosWorkspace(workspaceId, usuarioId);
   }
 }
